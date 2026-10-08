@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Employee.Data/Employee.Data.csproj" Id="e5cfbb8c-8a4c-452b-b72e-1d0b7e54da8a" />
+  <Project Path="EmployeeAdminPortal/Employee.API.csproj" />
+  <Project Path="Employees.UI/Employees.UI.csproj" Id="8f4afc79-85f4-4e12-b068-5e31d9760222" />
+  <Project Path="Repository.Design/Employee.BusinessLogic.csproj" Id="45f8c84c-298e-4337-b593-146f356c5385" />
+</Solution>

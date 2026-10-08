@@ -1,0 +1,119 @@
+﻿@page "/signup"
+@rendermode InteractiveServer
+@using Employees.UI.Services
+@inject HttpClientWrapper Api
+@inject NavigationManager Navigation
+@layout Layout
+<PageTitle>Signup</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+
+            <div class="card shadow">
+
+                <div class="card-header text-center">
+                    <h3>Create Account</h3>
+                </div>
+
+                <div class="card-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Name
+                        </label>
+
+                        <input class="form-control"
+                               @bind="Name"
+                               placeholder="Enter name" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Email
+                        </label>
+
+                        <input class="form-control"
+                               type="email"
+                               @bind="Email"
+                               placeholder="Enter email" />
+                    </div>
+
+                    @* Department *@
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Department
+                        </label>
+
+                        <select class="form-select" @bind="Department">
+                            <option value="">Select Department</option>
+                            <option value="HR">HR</option>
+                            <option value="Designing">Designing</option>
+                            <option value="Development">Development</option>
+                            <option value="Sales">Sales</option>
+                        </select>
+                    </div>
+
+
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Password
+                        </label>
+
+                        <input class="form-control"
+                               type="password"
+                               @bind="Password"
+                               placeholder="Enter password" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Confirm Password
+                        </label>
+
+                        <input class="form-control"
+                               type="password"
+                               @bind="ConfirmPassword"
+                               placeholder="Confirm password" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @ErrorMessage
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <div class="alert alert-success">
+                            @SuccessMessage
+                        </div>
+                    }
+
+                    <button class="btn btn-success w-100"
+                            @onclick="SignupUser">
+
+                        Sign Up
+
+                    </button>
+
+                    <div class="text-center mt-3">
+
+                        <a href="/login">
+                            Already have an account?
+                            Login
+                        </a>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+
