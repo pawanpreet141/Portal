@@ -1,98 +1,98 @@
-using System.Text.Json;
-using Employees.UI.Services;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
+//using System.Text.Json;
+//using Employees.UI.Services;
+//using Microsoft.AspNetCore.Components;
+//using Microsoft.AspNetCore.Components.Authorization;
 
-namespace Employees.UI.Components.Pages
-{
-    public partial class Login
-    {
-        private string Email = string.Empty;
-        private string Password = string.Empty;
-        private string ErrorMessage = string.Empty;
-
-
-        [Inject]
-        private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+//namespace Employees.UI.Components.Pages
+//{
+//    public partial class Login
+//    {
+//        private string Email = string.Empty;
+//        private string Password = string.Empty;
+//        private string ErrorMessage = string.Empty;
 
 
-        private async Task LoginUser()
-        {
-            ErrorMessage = string.Empty;
+//        [Inject]
+//        private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
 
-            if (string.IsNullOrWhiteSpace(Email))
-            {
-                ErrorMessage = "Email is required.";
-                return;
-            }
 
-            if (string.IsNullOrWhiteSpace(Password))
-            {
-                ErrorMessage = "Password is required.";
-                return;
-            }
+//        private async Task LoginUser()
+//        {
+//            ErrorMessage = string.Empty;
 
-            var result = await Api.Login(
-                new LoginRequest
-                {
-                    Email = Email,
-                    Password = Password
-                });
+//            if (string.IsNullOrWhiteSpace(Email))
+//            {
+//                ErrorMessage = "Email is required.";
+//                return;
+//            }
 
-            if (result == null)
-            {
-                ErrorMessage = "API returned null.";
-                return;
-            }
+//            if (string.IsNullOrWhiteSpace(Password))
+//            {
+//                ErrorMessage = "Password is required.";
+//                return;
+//            }
 
-            if (!result.Success)
-            {
-                ErrorMessage = GetMessage(
-                    result.Message,
-                    "Login failed.");
+//            var result = await Api.Login(
+//                new LoginRequest
+//                {
+//                    Email = Email,
+//                    Password = Password
+//                });
 
-                return;
-            }
+//            if (result == null)
+//            {
+//                ErrorMessage = "API returned null.";
+//                return;
+//            }
 
-            UserSession.Login(
-                result.Id,
-                result.Name,
-                result.Email,
-                result.Department,
-                result.Token);
+//            if (!result.Success)
+//            {
+//                ErrorMessage = GetMessage(
+//                    result.Message,
+//                    "Login failed.");
 
-            Navigation.NavigateTo("/employees");
-        }
+//                return;
+//            }
 
-        private string GetMessage(
-            string? message,
-            string defaultMessage)
-        {
-            if (string.IsNullOrWhiteSpace(message))
-            {
-                return defaultMessage;
-            }
+//            UserSession.Login(
+//                result.Id,
+//                result.Name,
+//                result.Email,
+//                result.Department,
+//                result.Token);
 
-            try
-            {
-                using JsonDocument document =
-                    JsonDocument.Parse(message);
+//            Navigation.NavigateTo("/employees");
+//        }
 
-                if (document.RootElement.TryGetProperty(
-                    "message",
-                    out JsonElement messageElement))
-                {
-                    return messageElement.GetString()
-                           ?? defaultMessage;
-                }
-            }
-            catch (JsonException)
-            {
-                // Message is already plain text
-            }
+//        private string GetMessage(
+//            string? message,
+//            string defaultMessage)
+//        {
+//            if (string.IsNullOrWhiteSpace(message))
+//            {
+//                return defaultMessage;
+//            }
 
-            return message;
-        }
+//            try
+//            {
+//                using JsonDocument document =
+//                    JsonDocument.Parse(message);
 
-    }
-}
+//                if (document.RootElement.TryGetProperty(
+//                    "message",
+//                    out JsonElement messageElement))
+//                {
+//                    return messageElement.GetString()
+//                           ?? defaultMessage;
+//                }
+//            }
+//            catch (JsonException)
+//            {
+//                // Message is already plain text
+//            }
+
+//            return message;
+//        }
+
+//    }
+//}

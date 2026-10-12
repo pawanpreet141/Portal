@@ -1,4 +1,4 @@
-﻿@page "/signup"
+﻿@* @page "/signup"
 @rendermode InteractiveServer
 @using Employees.UI.Services
 @inject HttpClientWrapper Api
@@ -40,7 +40,7 @@
                     </div>
 
                     @* Department *@
-                    <div class="mb-3">
+                    @* <div class="mb-3">
                         <label class="form-label">
                             Department
                         </label>
@@ -113,7 +113,140 @@
 
         </div>
     </div>
+</div> *@
+
+
+@* 12 *@
+
+                    
+@page "/signup"
+@rendermode InteractiveServer
+@using Employees.UI.Services
+@inject HttpClientWrapper Api
+@inject NavigationManager Navigation
+
+<PageTitle>Employee Signup</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow mx-auto" style="max-width:500px">
+        <div class="card-header">
+            <h3>Employee Signup</h3>
+            <p>Department: @Department</p>
+        </div>
+
+        <div class="card-body">
+            <div class="mb-3">
+                <label>Name</label>
+                <input class="form-control" @bind="Name" />
+            </div>
+
+            <div class="mb-3">
+                <label>Email</label>
+                <input class="form-control" type="email" @bind="Email" />
+            </div>
+
+            <div class="mb-3">
+                <label>Password</label>
+                <input class="form-control" type="password" @bind="Password" />
+            </div>
+
+            <div class="mb-3">
+                <label>Confirm Password</label>
+                <input class="form-control"
+                       type="password"
+                       @bind="ConfirmPassword" />
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+            {
+                <div class="alert alert-danger">@ErrorMessage</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(SuccessMessage))
+            {
+                <div class="alert alert-success">@SuccessMessage</div>
+            }
+
+            <button class="btn btn-success w-100"
+                    @onclick="SignupUser"
+                    disabled="@IsBusy">
+                Sign Up
+            </button>
+
+            <a href="/manager-dashboard" class="btn btn-link w-100">
+                Back to dashboard
+            </a>
+        </div>
+    </div>
 </div>
 
+@code {
+    [SupplyParameterFromQuery(Name = "department")]
+    public string Department { get; set; } = string.Empty;
 
+    private string Name = string.Empty;
+    private string Email = string.Empty;
+    private string Password = string.Empty;
+    private string ConfirmPassword = string.Empty;
+    private string ErrorMessage = string.Empty;
+    private string SuccessMessage = string.Empty;
+    private bool IsBusy;
 
+    private static readonly string[] AllowedDepartments =
+    {
+        "Development", "Designer", "Sales", "SEO",
+        "System Engineer", "DevOps"
+    };
+
+    private async Task SignupUser()
+    {
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+
+        if (!AllowedDepartments.Contains(
+            Department, StringComparer.OrdinalIgnoreCase))
+        {
+            ErrorMessage = "Please select a valid department.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Name) ||
+            string.IsNullOrWhiteSpace(Email) ||
+            string.IsNullOrWhiteSpace(Password))
+        {
+            ErrorMessage = "All fields are required.";
+            return;
+        }
+
+        if (Password != ConfirmPassword)
+        {
+            ErrorMessage = "Passwords do not match.";
+            return;
+        }
+
+        IsBusy = true;
+
+        try
+        {
+            var result = await Api.Signup(new SignupRequest
+            {
+                Name = Name,
+                Email = Email,
+                Password = Password,
+                Department = Department
+            });
+
+            if (result == null || !result.Success)
+            {
+                ErrorMessage = result?.Message ?? "Signup failed.";
+                return;
+            }
+
+            SuccessMessage = "Account created successfully.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+}

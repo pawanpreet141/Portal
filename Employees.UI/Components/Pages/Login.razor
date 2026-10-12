@@ -1,6 +1,6 @@
-﻿@page "/login"
+﻿@* @page "/login" *@
 @* @page "/" *@
-@layout Layout
+@* @layout Layout
 @rendermode InteractiveServer
 @using Employees.UI.Services
 @inject HttpClientWrapper Api
@@ -79,4 +79,153 @@
 </div>
 
 
+ *@
+
+
+@*  12 *@
+
+@page "/"
+@page "/login"
+@rendermode InteractiveServer
+@using Employees.UI.Services
+@inject HttpClientWrapper Api
+@inject UserSession UserSession
+@inject CustomAuthStateProvider AuthProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Login</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-header text-center">
+                    <h3>Employee Management Login</h3>
+                </div>
+
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label>Email</label>
+                        <input class="form-control"
+                               type="email"
+                               @bind="Email" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Password</label>
+                        <input class="form-control"
+                               type="password"
+                               @bind="Password" />
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @ErrorMessage
+                        </div>
+                    }
+
+                    <button class="btn btn-primary w-100"
+                            @onclick="LoginUser"
+                            disabled="@IsBusy">
+                        @(IsBusy ? "Signing in..." : "Login")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@code {
+    private string Email = string.Empty;
+    private string Password = string.Empty;
+    private string ErrorMessage = string.Empty;
+    private bool IsBusy;
+
+
+    private async Task LoginUser()
+{
+    ErrorMessage = string.Empty;
+
+    if (string.IsNullOrWhiteSpace(Email) ||
+        string.IsNullOrWhiteSpace(Password))
+    {
+        ErrorMessage = "Email and password are required.";
+        return;
+    }
+
+    IsBusy = true;
+
+    try
+    {
+        var result = await Api.Login(new LoginRequest
+        {
+            Email = Email,
+            Password = Password
+        });
+
+        if (result == null || !result.Success)
+        {
+            ErrorMessage = result?.Message ?? "Login failed.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(result.Token))
+        {
+            ErrorMessage = "Login response does not contain a token.";
+            return;
+        }
+
+
+
+            UserSession.Login(
+                result.Id,
+                result.Name,
+                result.Email,
+                result.Role,
+                result.Department,
+                result.Token);
+
+            Console.WriteLine($"LOGIN USER: {UserSession.Name}");
+            Console.WriteLine($"LOGIN ROLE: {UserSession.Role}");
+            Console.WriteLine($"LOGIN STATUS: {UserSession.IsLoggedIn}");
+
+            AuthProvider.NotifyUserLogin();
+
+            if (result.Role?.Trim().Equals(
+                "Admin",
+                StringComparison.OrdinalIgnoreCase) == true)
+            {
+                Navigation.NavigateTo("/create-manager");
+            }
+            else if (result.Role?.Trim().Equals(
+                "Manager",
+                StringComparison.OrdinalIgnoreCase) == true)
+            {
+                Navigation.NavigateTo("/manager-dashboard");
+            }
+            else if (result.Role?.Trim().Equals(
+                "Employee",
+                StringComparison.OrdinalIgnoreCase) == true)
+            {
+                Navigation.NavigateTo("/employees");
+            }
+            else
+            {
+                ErrorMessage = $"Unexpected role: {result.Role}";
+            }
+
+    }
+    catch (Exception ex)
+    {
+        ErrorMessage = $"Login error: {ex.Message}";
+    }
+    finally
+    {
+        IsBusy = false;
+    }
+}
+   }
 

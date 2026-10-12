@@ -1,4 +1,4 @@
-﻿@using Employees.UI.Models
+﻿@* @using Employees.UI.Models
 @using Employees.UI.Services
 @page "/employees"
 @rendermode InteractiveServer
@@ -9,7 +9,7 @@
 <h3>Employee Management</h3>
 
 @* 29  code show jwt ,,, browser,,,, only for testing*@
-@if (UserSession.IsLoggedIn)
+@* @if (UserSession.IsLoggedIn)
 {
     <div class="alert alert-info">
         <strong>JWT Token:</strong>
@@ -18,9 +18,9 @@
             @UserSession.Token
         </div>
     </div>
-}
+} *@
 @* 29 *@
-
+@* 
 <hr />
 
 <div class="mb-3">
@@ -171,4 +171,166 @@ else
 
 	</table>
 }
+ *@
 
+@page "/employees"
+@rendermode InteractiveServer
+
+@using Employees.UI.Models
+@using Employees.UI.Services
+@using Microsoft.AspNetCore.Components.Forms
+
+@inject HttpClientWrapper HttpClient
+@inject UserSession UserSession
+@inject NavigationManager Navigation
+
+<PageTitle>Employee Management</PageTitle>
+
+<div class="container mt-4">
+    <h3>Employee Management</h3>
+
+    <hr />
+
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <div class="alert @(IsSuccess ? "alert-success" : "alert-danger")">
+            @Message
+        </div>
+    }
+
+    <div class="mb-3">
+        <button class="btn btn-primary"
+                @onclick="ShowAddForm">
+            Add Employee
+        </button>
+
+        <button class="btn btn-outline-danger ms-2"
+                @onclick="Logout">
+            Logout
+        </button>
+    </div>
+
+    @if (showForm)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>
+                    @(editingId == 0 ? "Add Employee" : "Edit Employee")
+                </strong>
+            </div>
+
+            <div class="card-body">
+                <EditForm Model="employee" OnValidSubmit="SaveEmployee">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <InputText class="form-control"
+                                   @bind-Value="employee.Name" />
+                        <ValidationMessage For="@(() => employee.Name)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <InputText type="email"
+                                   class="form-control"
+                                   @bind-Value="employee.Email" />
+                        <ValidationMessage For="@(() => employee.Email)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Salary</label>
+                        <InputNumber class="form-control"
+                                     @bind-Value="employee.Salary" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <InputSelect class="form-select"
+                                     @bind-Value="employee.Department">
+                            <option value="">Select Department</option>
+                            <option value="HR">HR</option>
+                            <option value="Designing">Designing</option>
+                            <option value="Development">Development</option>
+                            <option value="Sales">Sales</option>
+                        </InputSelect>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Age</label>
+                        <InputNumber class="form-control"
+                                     @bind-Value="employee.Age" />
+                        <ValidationMessage For="@(() => employee.Age)" />
+                    </div>
+
+                    <button type="submit"
+                            class="btn btn-success me-2"
+                            disabled="@IsBusy">
+                        @(IsBusy ? "Saving..." : "Save")
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            @onclick="Cancel"
+                            disabled="@IsBusy">
+                        Cancel
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @if (employees == null)
+    {
+        <p><em>Loading employees...</em></p>
+    }
+    else if (!employees.Any())
+    {
+        <p>No employees found.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Salary</th>
+                        <th>Department</th>
+                        <th>Age</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in employees)
+                    {
+                        <tr @key="item.Id">
+                            <td>@item.Id</td>
+                            <td>@item.Name</td>
+                            <td>@item.Email</td>
+                            <td>@item.Salary</td>
+                            <td>@item.Department</td>
+                            <td>@item.Age</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning me-2"
+                                        @onclick="() => EditEmployee(item)">
+                                    Edit
+                                </button>
+
+                                <button class="btn btn-sm btn-danger"
+                                        @onclick="() => DeleteEmployee(item.Id)"
+                                        disabled="@IsBusy">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

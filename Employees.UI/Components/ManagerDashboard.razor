@@ -1,0 +1,122 @@
+﻿@page "/manager-dashboard"
+@rendermode InteractiveServer
+@using Employees.UI.Services
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<PageTitle>Manager Dashboard</PageTitle>
+
+<div class="container mt-4">
+    <h2>Manager Dashboard</h2>
+    <p>Welcome, @Session.Name</p>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4>HR</h4>
+                    <p>Development, Designer, Sales and SEO</p>
+
+                    <button class="btn btn-primary w-100"
+                            @onclick='() => SelectDepartmentGroup("HR")'>
+                        Select HR
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4>Technical</h4>
+                    <p>System Engineer and DevOps</p>
+
+                    <button class="btn btn-success w-100"
+                            @onclick='() => SelectDepartmentGroup("Technical")'>
+                        Select Technical
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(SelectedGroup))
+    {
+        <div class="card mt-4">
+            <div class="card-body">
+                <h4>@SelectedGroup Departments</h4>
+
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var department in Departments)
+                    {
+                        <button class="btn btn-outline-primary"
+                                @onclick="() => OpenSignup(department)">
+                            @department
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <button class="btn btn-outline-danger mt-4"
+            @onclick="Logout">
+        Logout
+    </button>
+</div>
+
+@code {
+    private string SelectedGroup = string.Empty;
+
+    private string[] Departments = Array.Empty<string>();
+
+    protected override void OnInitialized()
+    {
+        if (!Session.IsLoggedIn || Session.Role != "Manager")
+        {
+            Navigation.NavigateTo("/manager-login");
+        }
+    }
+
+    private void SelectDepartmentGroup(string group)
+    {
+        if (!Session.IsLoggedIn || Session.Role != "Manager")
+        {
+            Navigation.NavigateTo("/manager-login");
+            return;
+        }
+
+        if (group == "HR")
+        {
+            SelectedGroup = "HR";
+            Departments = new[]
+            {
+                "Development",
+                "Designer",
+                "Sales",
+                "SEO"
+            };
+        }
+        else if (group == "Technical")
+        {
+            SelectedGroup = "Technical";
+            Departments = new[]
+            {
+                "System Engineer",
+                "DevOps"
+            };
+        }
+    }
+
+    private void OpenSignup(string department)
+    {
+        Navigation.NavigateTo(
+            $"/signup?department={Uri.EscapeDataString(department)}");
+    }
+
+    private void Logout()
+    {
+        Session.Logout();
+        Navigation.NavigateTo("/manager-login");
+    }
+}

@@ -1,0 +1,144 @@
+﻿@page "/create-manager"
+@rendermode InteractiveServer
+@using Employees.UI.Services
+@inject HttpClientWrapper Api
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<PageTitle>Create Manager</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow mx-auto" style="max-width:600px">
+        <div class="card-header">
+            <h3>Create Manager</h3>
+            <p>Admin: @Session.Name</p>
+        </div>
+
+        <div class="card-body">
+            <div class="mb-3">
+                <label>Name</label>
+                <input class="form-control" @bind="Name" />
+            </div>
+
+            <div class="mb-3">
+                <label>Email</label>
+                <input class="form-control" type="email" @bind="Email" />
+            </div>
+
+            <div class="mb-3">
+                <label>Password</label>
+                <input class="form-control" type="password" @bind="Password" />
+            </div>
+
+            <div class="mb-3">
+                <label>Manager Department</label>
+                <select class="form-select" @bind="Department">
+                    <option value="">Select department</option>
+                    <option value="HR">HR</option>
+                    <option value="Technical">Technical</option>
+                </select>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Message))
+            {
+                <div class="alert @(IsSuccess ? "alert-success" : "alert-danger")">
+                    @Message
+                </div>
+            }
+
+            <button class="btn btn-primary w-100"
+                    @onclick="CreateManagerAccount"
+                    disabled="@IsBusy">
+                Create Manager
+            </button>
+
+            <button class="btn btn-outline-secondary w-100 mt-2"
+                    @onclick="Logout">
+                Logout
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string Name = string.Empty;
+    private string Email = string.Empty;
+    private string Password = string.Empty;
+    private string Department = string.Empty;
+    private string Message = string.Empty;
+    private bool IsSuccess;
+    private bool IsBusy;
+
+    protected override void OnInitialized()
+    {
+        Console.WriteLine($"IsLoggedIn: {Session.IsLoggedIn}");
+        Console.WriteLine($"User: {Session.Name}");
+        Console.WriteLine($"Role: '{Session.Role}'");
+
+        if (!Session.IsLoggedIn ||
+                !string.Equals(
+                    Session.Role?.Trim(),
+                    "Admin",
+                    StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+   
+    private async Task CreateManagerAccount()
+    {
+        Message = string.Empty;
+
+        if (!Session.IsLoggedIn ||
+            !string.Equals(
+                Session.Role?.Trim(),
+                "Admin",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Name) ||
+            string.IsNullOrWhiteSpace(Email) ||
+            string.IsNullOrWhiteSpace(Password) ||
+            string.IsNullOrWhiteSpace(Department))
+        {
+            Message = "All fields are required.";
+            return;
+        }
+
+        IsBusy = true;
+
+        try
+        {
+            var result = await Api.CreateManager(
+                new CreateManagerRequest
+                {
+                    Name = Name,
+                    Email = Email,
+                    Password = Password,
+                    Department = Department
+                });
+
+            IsSuccess = result.Success;
+            Message = result.Message;
+
+            if (result.Success)
+            {
+                Navigation.NavigateTo("/manager-login");
+            }
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void Logout()
+    {
+        Session.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}
