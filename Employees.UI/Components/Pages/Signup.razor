@@ -243,6 +243,12 @@
             }
 
             SuccessMessage = "Account created successfully.";
+
+            await Task.Delay(1000);
+
+           // Navigation.NavigateTo("/employee-login");
+           Navigation.NavigateTo("/login");
+
         }
         finally
         {

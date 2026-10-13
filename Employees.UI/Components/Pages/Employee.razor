@@ -256,6 +256,25 @@ else
                             <option value="Sales">Sales</option>
                         </InputSelect>
                     </div>
+                       
+
+                    
+                      <div class="mb-3">
+                        <label class="form-label">Team</label>
+
+                     <InputSelect class="form-select"
+                      @bind-Value="employee.Team">
+                     <option value="">Select Team</option>
+                     <option value="Designer">Designer</option>
+                     <option value="Development">Development</option>
+                     <option value="Sales">Sales</option>
+                     <option value="SEO">SEO</option>
+                     <option value="System Engineer">System Engineer</option>
+                     <option value="DevOps">DevOps</option>
+                     </InputSelect>
+                     </div>
+
+
 
                     <div class="mb-3">
                         <label class="form-label">Age</label>
@@ -300,6 +319,7 @@ else
                         <th>Email</th>
                         <th>Salary</th>
                         <th>Department</th>
+                        <th>Team</th>
                         <th>Age</th>
                         <th>Actions</th>
                     </tr>
@@ -314,6 +334,7 @@ else
                             <td>@item.Email</td>
                             <td>@item.Salary</td>
                             <td>@item.Department</td>
+                            <td>@item.Team</td>
                             <td>@item.Age</td>
                             <td>
                                 <button class="btn btn-sm btn-warning me-2"

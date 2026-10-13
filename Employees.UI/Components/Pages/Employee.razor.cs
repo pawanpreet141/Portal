@@ -116,13 +116,12 @@
 //}
 
 
-
+ 
 //12
 
 using Employees.UI.Models;
 using Employees.UI.Services;
 using Microsoft.AspNetCore.Components;
-
 namespace Employees.UI.Components.Pages
 {
     public partial class Employee
@@ -172,7 +171,8 @@ namespace Employees.UI.Components.Pages
         {
             employee = new Employee1
             {
-                UserId = UserSession.UserId
+                UserId = UserSession.UserId,
+                Team = string.Empty
             };
 
             editingId = 0;
@@ -189,6 +189,7 @@ namespace Employees.UI.Components.Pages
                 Email = selectedEmployee.Email,
                 Salary = selectedEmployee.Salary,
                 Department = selectedEmployee.Department,
+                Team = selectedEmployee.Team,
                 Age = selectedEmployee.Age,
                 UserId = UserSession.UserId
             };
