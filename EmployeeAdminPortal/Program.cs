@@ -1,16 +1,18 @@
+using Employee.API.Middleware;
+using Employee.API.Validators;
+using Employee.BusinessLogic;
 using Employee.Data.Data;
 using Employee.Data.Models;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Serilog;
 using System.Security.Claims;
 using System.Text;
-using FluentValidation;
-using Employee.API.Validators;
-using Employee.BusinessLogic;
-using Serilog;
+using Employee.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -158,6 +160,13 @@ builder.Services.AddSwaggerGen(options =>
             });
 });
 
+//13
+
+//using Employee.API.Middleware;
+
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 
 var app = builder.Build();
 
@@ -183,6 +192,8 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
+
+app.UseExceptionHandler();
 
 app.UseAuthentication();
 
