@@ -1,114 +1,88 @@
-//using System.Text.Json;
-//using Employees.UI.Services;
+using Employees.UI.Services;
+using Microsoft.AspNetCore.Components;
+using System.Text.Json;
 
-//namespace Employees.UI.Components.Pages
-//{
-//    public partial class Signup
-//    {
-//        private string Name = string.Empty;
-//        private string Email = string.Empty;
-//        private string Department = string.Empty;
-//        private string Password = string.Empty;
-//        private string ConfirmPassword = string.Empty;
+namespace Employees.UI.Components.Pages
+{
+    public partial class Signup
+    {
 
-//        private string ErrorMessage = string.Empty;
-//        private string SuccessMessage = string.Empty;
 
-//        private async Task SignupUser()
-//        {
-//            ErrorMessage = string.Empty;
-//            SuccessMessage = string.Empty;
 
-//            // Validate fields individually
-//            if (string.IsNullOrWhiteSpace(Name))
-//            {
-//                ErrorMessage = "Name is required.";
-//                return;
-//            }
+        [SupplyParameterFromQuery(Name = "department")]
+        public string Department { get; set; } = string.Empty;
 
-//            if (string.IsNullOrWhiteSpace(Email))
-//            {
-//                ErrorMessage = "Email is required.";
-//                return;
-//            }
+        private string Name = string.Empty;
+        private string Email = string.Empty;
+        private string Password = string.Empty;
+        private string ConfirmPassword = string.Empty;
+        private string ErrorMessage = string.Empty;
+        private string SuccessMessage = string.Empty;
+        private bool IsBusy;
 
-//            if (string.IsNullOrWhiteSpace(Department))
-//            {
-//                ErrorMessage = "Department is required.";
-//                return;
-//            }
+        private static readonly string[] AllowedDepartments =
+        {
+        "Development", "Designer", "Sales", "SEO",
+        "System Engineer", "DevOps"
+    };
 
-//            if (string.IsNullOrWhiteSpace(Password))
-//            {
-//                ErrorMessage = "Password is required.";
-//                return;
-//            }
+        private async Task SignupUser()
+        {
+            ErrorMessage = string.Empty;
+            SuccessMessage = string.Empty;
 
-//            if (string.IsNullOrWhiteSpace(ConfirmPassword))
-//            {
-//                ErrorMessage = "Confirm Password is required.";
-//                return;
-//            }
+            if (!AllowedDepartments.Contains(
+                Department, StringComparer.OrdinalIgnoreCase))
+            {
+                ErrorMessage = "Please select a valid department.";
+                return;
+            }
 
-//            if (Password != ConfirmPassword)
-//            {
-//                ErrorMessage = "Passwords do not match.";
-//                return;
-//            }
+            if (string.IsNullOrWhiteSpace(Name) ||
+                string.IsNullOrWhiteSpace(Email) ||
+                string.IsNullOrWhiteSpace(Password))
+            {
+                ErrorMessage = "All fields are required.";
+                return;
+            }
 
-//            var result = await Api.Signup(
-//                new SignupRequest
-//                {
-//                    Name = Name,
-//                    Email = Email,
-//                    Password = Password,
-//                    Department = Department
-//                });
+            if (Password != ConfirmPassword)
+            {
+                ErrorMessage = "Passwords do not match.";
+                return;
+            }
 
-//            if (result == null || !result.Success)
-//            {
-//                ErrorMessage = GetMessage(
-//                    result?.Message,
-//                    "Signup failed.");
+            IsBusy = true;
 
-//                return;
-//            }
+            try
+            {
+                var result = await Api.Signup(new SignupRequest
+                {
+                    Name = Name,
+                    Email = Email,
+                    Password = Password,
+                    Department = Department
+                });
 
-//            SuccessMessage = "Account created successfully.";
+                if (result == null || !result.Success)
+                {
+                    ErrorMessage = result?.Message ?? "Signup failed.";
+                    return;
+                }
 
-//            await Task.Delay(1000);
+                SuccessMessage = "Account created successfully.";
 
-//            Navigation.NavigateTo("/login");
-//        }
+                await Task.Delay(1000);
 
-//        private string GetMessage(
-//            string? message,
-//            string defaultMessage)
-//        {
-//            if (string.IsNullOrWhiteSpace(message))
-//            {
-//                return defaultMessage;
-//            }
+                // Navigation.NavigateTo("/employee-login");
+                Navigation.NavigateTo("/login");
 
-//            try
-//            {
-//                using JsonDocument document =
-//                    JsonDocument.Parse(message);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+    }
 
-//                if (document.RootElement.TryGetProperty(
-//                    "message",
-//                    out JsonElement messageElement))
-//                {
-//                    return messageElement.GetString()
-//                           ?? defaultMessage;
-//                }
-//            }
-//            catch (JsonException)
-//            {
-//                // Message is already plain text
-//            }
-
-//            return message;
-//        }
-//    }
-//}
+}

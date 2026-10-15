@@ -12,7 +12,6 @@ using Microsoft.OpenApi;
 using Serilog;
 using System.Security.Claims;
 using System.Text;
-using Employee.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -162,8 +161,6 @@ builder.Services.AddSwaggerGen(options =>
 
 //13
 
-//using Employee.API.Middleware;
-
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
@@ -190,10 +187,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
-
-app.UseExceptionHandler();
 
 app.UseAuthentication();
 

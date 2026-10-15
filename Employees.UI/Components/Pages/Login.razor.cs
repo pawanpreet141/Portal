@@ -1,98 +1,100 @@
-//using System.Text.Json;
-//using Employees.UI.Services;
-//using Microsoft.AspNetCore.Components;
-//using Microsoft.AspNetCore.Components.Authorization;
+using System.Text.Json;
+using Employees.UI.Services;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 
-//namespace Employees.UI.Components.Pages
-//{
-//    public partial class Login
-//    {
-//        private string Email = string.Empty;
-//        private string Password = string.Empty;
-//        private string ErrorMessage = string.Empty;
-
-
-//        [Inject]
-//        private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+namespace Employees.UI.Components.Pages
+{
+    public partial class Login
+    {
+        private string Email = string.Empty;
+        private string Password = string.Empty;
+        private string ErrorMessage = string.Empty;
+        private bool IsBusy;
 
 
-//        private async Task LoginUser()
-//        {
-//            ErrorMessage = string.Empty;
+        private async Task LoginUser()
+        {
+            ErrorMessage = string.Empty;
 
-//            if (string.IsNullOrWhiteSpace(Email))
-//            {
-//                ErrorMessage = "Email is required.";
-//                return;
-//            }
+            if (string.IsNullOrWhiteSpace(Email) ||
+                string.IsNullOrWhiteSpace(Password))
+            {
+                ErrorMessage = "Email and password are required.";
+                return;
+            }
 
-//            if (string.IsNullOrWhiteSpace(Password))
-//            {
-//                ErrorMessage = "Password is required.";
-//                return;
-//            }
+            IsBusy = true;
 
-//            var result = await Api.Login(
-//                new LoginRequest
-//                {
-//                    Email = Email,
-//                    Password = Password
-//                });
+            try
+            {
+                var result = await Api.Login(new LoginRequest
+                {
+                    Email = Email,
+                    Password = Password
+                });
 
-//            if (result == null)
-//            {
-//                ErrorMessage = "API returned null.";
-//                return;
-//            }
+                if (result == null || !result.Success)
+                {
+                    ErrorMessage = result?.Message ?? "Login failed.";
+                    return;
+                }
 
-//            if (!result.Success)
-//            {
-//                ErrorMessage = GetMessage(
-//                    result.Message,
-//                    "Login failed.");
+                if (string.IsNullOrWhiteSpace(result.Token))
+                {
+                    ErrorMessage = "Login response does not contain a token.";
+                    return;
+                }
 
-//                return;
-//            }
 
-//            UserSession.Login(
-//                result.Id,
-//                result.Name,
-//                result.Email,
-//                result.Department,
-//                result.Token);
 
-//            Navigation.NavigateTo("/employees");
-//        }
+                UserSession.Login(
+                    result.Id,
+                    result.Name,
+                    result.Email,
+                    result.Role,
+                    result.Department,
+                    result.Token);
 
-//        private string GetMessage(
-//            string? message,
-//            string defaultMessage)
-//        {
-//            if (string.IsNullOrWhiteSpace(message))
-//            {
-//                return defaultMessage;
-//            }
+                Console.WriteLine($"LOGIN USER: {UserSession.Name}");
+                Console.WriteLine($"LOGIN ROLE: {UserSession.Role}");
+                Console.WriteLine($"LOGIN STATUS: {UserSession.IsLoggedIn}");
 
-//            try
-//            {
-//                using JsonDocument document =
-//                    JsonDocument.Parse(message);
+                AuthProvider.NotifyUserLogin();
 
-//                if (document.RootElement.TryGetProperty(
-//                    "message",
-//                    out JsonElement messageElement))
-//                {
-//                    return messageElement.GetString()
-//                           ?? defaultMessage;
-//                }
-//            }
-//            catch (JsonException)
-//            {
-//                // Message is already plain text
-//            }
+                if (result.Role?.Trim().Equals(
+                    "Admin",
+                    StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    Navigation.NavigateTo("/create-manager");
+                }
+                else if (result.Role?.Trim().Equals(
+                    "Manager",
+                    StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    Navigation.NavigateTo("/manager-dashboard");
+                }
+                else if (result.Role?.Trim().Equals(
+                    "Employee",
+                    StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    Navigation.NavigateTo("/employee-dashboard");
+                }
+                else
+                {
+                    ErrorMessage = $"Unexpected role: {result.Role}";
+                }
 
-//            return message;
-//        }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Login error: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+    }
 
-//    }
-//}
+}

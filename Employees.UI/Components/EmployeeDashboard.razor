@@ -1,0 +1,25 @@
+﻿@page "/employee-dashboard"
+@rendermode InteractiveServer
+@using Employees.UI.Services
+@inject UserSession UserSession
+
+<PageTitle>Employee Dashboard</PageTitle>
+
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header">
+            <h3>Employee Dashboard</h3>
+        </div>
+
+        <div class="card-body">
+            <h4>Welcome, @UserSession.Name!</h4>
+
+            <div class="alert alert-success mt-3">
+                Login successful.
+            </div>
+
+            <p><strong>Email:</strong> @UserSession.Email</p>
+            <p><strong>Role:</strong> @UserSession.Role</p>
+        </div>
+    </div>
+</div>

@@ -1,6 +1,4 @@
-﻿//14
-
-using Microsoft.AspNetCore.Diagnostics;
+﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Employee.API.Middleware
@@ -24,6 +22,11 @@ namespace Employee.API.Middleware
                 exception,
                 "Unhandled exception occurred. TraceId: {TraceId}",
                 httpContext.TraceIdentifier);
+
+            if (httpContext.Response.HasStarted)
+            {
+                return false;
+            }
 
             var problem = new ProblemDetails
             {
