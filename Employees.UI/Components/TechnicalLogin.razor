@@ -1,0 +1,125 @@
+﻿@page "/technical-login"
+@rendermode InteractiveServer
+@using Employees.UI.Services
+@inject HttpClientWrapper Api
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<PageTitle>Technical Login</PageTitle>
+
+<div class="container mt-5">
+    <div class="card shadow mx-auto" style="max-width: 450px">
+        <div class="card-header text-center">
+            <h3>Technical Login</h3>
+        </div>
+
+        <div class="card-body">
+            <div class="mb-3">
+                <label>Email</label>
+                <input class="form-control"
+                       type="email"
+                       @bind="Email" />
+            </div>
+
+            <div class="mb-3">
+                <label>Password</label>
+                <input class="form-control"
+                       type="password"
+                       @bind="Password" />
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Message))
+            {
+                <div class="alert alert-danger">
+                    @Message
+                </div>
+            }
+
+            <button class="btn btn-success w-100"
+                    @onclick="LoginTechnical"
+                    disabled="@IsBusy">
+                @(IsBusy ? "Logging in..." : "Login")
+            </button>
+
+            <button class="btn btn-secondary w-100 mt-2"
+                    @onclick="GoToCommonLogin">
+                Common Login
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string Email = string.Empty;
+    private string Password = string.Empty;
+    private string Message = string.Empty;
+    private bool IsBusy;
+
+    private async Task LoginTechnical()
+    {
+        Message = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(Email) ||
+            string.IsNullOrWhiteSpace(Password))
+        {
+            Message = "Enter your email and password.";
+            return;
+        }
+
+        IsBusy = true;
+
+        try
+        {
+            var result = await Api.Login(new LoginRequest
+            {
+                Email = Email.Trim(),
+                Password = Password
+            });
+
+            if (result == null || !result.Success)
+            {
+                Message = result?.Message ?? "Login failed.";
+                return;
+            }
+
+            if (!string.Equals(
+                result.Role?.Trim(),
+                "Technical",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                Message = "This login page is only for Technical accounts.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(result.Token))
+            {
+                Message = "Login response does not contain a token.";
+                return;
+            }
+
+            Session.Login(
+                result.Id,
+                result.Name,
+                result.Email,
+                result.Role,
+                result.Department,
+                result.Token);
+
+            Navigation.NavigateTo("/technical-dashboard");
+        }
+        catch
+        {
+            Message = "Unable to connect to the API.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void GoToCommonLogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+}
+

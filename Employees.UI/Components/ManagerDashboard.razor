@@ -10,16 +10,16 @@
     <h2>Manager Dashboard</h2>
     <p>Welcome, @Session.Name</p>
 
-    <div class="row g-3">
+    <div class="row g-3 mt-3">
         <div class="col-md-6">
             <div class="card shadow h-100">
                 <div class="card-body">
                     <h4>HR</h4>
-                    <p>Development, Designer, Sales and SEO</p>
+                    <p>Create an HR account.</p>
 
                     <button class="btn btn-primary w-100"
-                            @onclick='() => SelectDepartmentGroup("HR")'>
-                        Select HR
+                            @onclick="CreateHR">
+                        Create HR
                     </button>
                 </div>
             </div>
@@ -29,35 +29,16 @@
             <div class="card shadow h-100">
                 <div class="card-body">
                     <h4>Technical</h4>
-                    <p>System Engineer and DevOps</p>
+                    <p>Create a Technical account.</p>
 
                     <button class="btn btn-success w-100"
-                            @onclick='() => SelectDepartmentGroup("Technical")'>
-                        Select Technical
+                            @onclick="CreateTechnical">
+                        Create Technical
                     </button>
                 </div>
             </div>
         </div>
     </div>
-
-    @if (!string.IsNullOrWhiteSpace(SelectedGroup))
-    {
-        <div class="card mt-4">
-            <div class="card-body">
-                <h4>@SelectedGroup Departments</h4>
-
-                <div class="d-flex flex-wrap gap-2">
-                    @foreach (var department in Departments)
-                    {
-                        <button class="btn btn-outline-primary"
-                                @onclick="() => OpenSignup(department)">
-                            @department
-                        </button>
-                    }
-                </div>
-            </div>
-        </div>
-    }
 
     <button class="btn btn-outline-danger mt-4"
             @onclick="Logout">
@@ -66,52 +47,24 @@
 </div>
 
 @code {
-    private string SelectedGroup = string.Empty;
-
-    private string[] Departments = Array.Empty<string>();
-
     protected override void OnInitialized()
     {
-        if (!Session.IsLoggedIn || Session.Role != "Manager")
+        if (!Session.IsLoggedIn ||
+            !string.Equals(Session.Role, "Manager",
+                StringComparison.OrdinalIgnoreCase))
         {
             Navigation.NavigateTo("/manager-login");
         }
     }
 
-    private void SelectDepartmentGroup(string group)
+    private void CreateHR()
     {
-        if (!Session.IsLoggedIn || Session.Role != "Manager")
-        {
-            Navigation.NavigateTo("/manager-login");
-            return;
-        }
-
-        if (group == "HR")
-        {
-            SelectedGroup = "HR";
-            Departments = new[]
-            {
-                "Development",
-                "Designer",
-                "Sales",
-                "SEO"
-            };
-        }
-        else if (group == "Technical")
-        {
-            SelectedGroup = "Technical";
-            Departments = new[]
-            {
-                "System Engineer",
-                "DevOps"
-            };
-        }
+        Navigation.NavigateTo("/create-hr");
     }
 
-    private void OpenSignup(string department)
+    private void CreateTechnical()
     {
-        Navigation.NavigateTo(
-            $"/signup?department={Uri.EscapeDataString(department)}");
+        Navigation.NavigateTo("/create-technical");
     }
 
     private void Logout()
@@ -120,3 +73,5 @@
         Navigation.NavigateTo("/manager-login");
     }
 }
+
+

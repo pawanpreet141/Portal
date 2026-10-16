@@ -28,8 +28,6 @@ namespace Employee.API.Controllers
         }
 
 
-
-
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Employee1>>> GetEmployees()
         {
@@ -268,10 +266,10 @@ namespace Employee.API.Controllers
             return null;
         }
 
-        [HttpGet("test-exception")]
-        public IActionResult TestException()
-        {
-            throw new Exception("Test exception");
-        }
+        //[HttpGet("test-exception")]
+        //public IActionResult TestException()
+        //{
+        //    throw new Exception("Test exception");
+        //}
     }
 }

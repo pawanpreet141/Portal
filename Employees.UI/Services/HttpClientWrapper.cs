@@ -136,8 +136,94 @@ namespace Employees.UI.Services
             }
         }
 
-        public async Task<ApiResponse?> Signup(
-            SignupRequest request)
+        public async Task<ApiResponse> CreateDepartmentAccount(
+    CreateDepartmentAccountRequest request)
+        {
+            try
+            {
+                var response = await PostAsync(
+                    "api/Account/create-department-account",
+                    request);
+
+                var text = await response.Content.ReadAsStringAsync();
+
+                return new ApiResponse
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.IsSuccessStatusCode
+                        ? "Account created successfully."
+                        : text
+                };
+            }
+            catch (HttpRequestException)
+            {
+                return new ApiResponse
+                {
+                    Success = false,
+                    Message = "Unable to connect to the API."
+                };
+            }
+        }
+
+
+        public async Task<ApiResponse> CreateDepartmentAccount(
+            CreateDepartmentRequest request)
+        {
+            try
+            {
+                var response = await PostAsync(
+                    "api/Account/create-department-account",
+                    request);
+
+                var text = await response.Content.ReadAsStringAsync();
+
+                return new ApiResponse
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.IsSuccessStatusCode
+                        ? "Account created successfully."
+                        : text
+                };
+            }
+            catch (HttpRequestException)
+            {
+                return new ApiResponse
+                {
+                    Success = false,
+                    Message = "Unable to connect to the API."
+                };
+            }
+        }
+
+        //public async Task<ApiResponse?> Signup(
+        //    SignupRequest request)
+        //{
+        //    try
+        //    {
+        //        var response = await _httpClient.PostAsJsonAsync(
+        //            "api/Account/signup", request);
+
+        //        var text = await response.Content.ReadAsStringAsync();
+
+        //        return new ApiResponse
+        //        {
+        //            Success = response.IsSuccessStatusCode,
+        //            Message = response.IsSuccessStatusCode
+        //                ? "Account created successfully."
+        //                : text
+        //        };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new ApiResponse
+        //        {
+        //            Success = false,
+        //            Message = ex.Message
+        //        };
+        //    }
+        //}
+
+        public async Task<ApiResponse?> Signup(SignupRequest request)
         {
             try
             {
@@ -154,12 +240,12 @@ namespace Employees.UI.Services
                         : text
                 };
             }
-            catch (Exception ex)
+            catch (HttpRequestException)
             {
                 return new ApiResponse
                 {
                     Success = false,
-                    Message = ex.Message
+                    Message = "Unable to connect to the API. Please try again."
                 };
             }
         }
@@ -191,6 +277,23 @@ namespace Employees.UI.Services
     }
 
     public class CreateManagerRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+    }
+
+
+    public class CreateDepartmentRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+    }
+
+    public class CreateDepartmentAccountRequest
     {
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;

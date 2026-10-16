@@ -11,5 +11,6 @@
         public decimal Salary { get; set; }
 
         public string Team { get; set; } = string.Empty;
+
     }
 }

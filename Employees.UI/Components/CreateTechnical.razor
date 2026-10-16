@@ -1,0 +1,150 @@
+﻿@page "/create-technical"
+@rendermode InteractiveServer
+@using Employees.UI.Services
+@inject HttpClientWrapper Api
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<PageTitle>Create Technical</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow mx-auto" style="max-width: 600px">
+        <div class="card-header">
+            <h3>Create Technical</h3>
+            <p>Manager: @Session.Name</p>
+        </div>
+
+        <div class="card-body">
+            <div class="mb-3">
+                <label>Name</label>
+                <input class="form-control"
+                       @bind="Name" />
+            </div>
+
+            <div class="mb-3">
+                <label>Email</label>
+                <input class="form-control"
+                       type="email"
+                       @bind="Email" />
+            </div>
+
+            <div class="mb-3">
+                <label>Password</label>
+                <input class="form-control"
+                       type="password"
+                       @bind="Password" />
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Message))
+            {
+                <div class="alert @(IsSuccess
+                                        ? "alert-success"
+                                        : "alert-danger")">
+                    @Message
+                </div>
+            }
+
+            <button class="btn btn-success w-100"
+                    @onclick="CreateTechnicalAccount"
+                    disabled="@IsBusy">
+                @(IsBusy ? "Creating..." : "Create Technical")
+            </button>
+
+            <button class="btn btn-secondary w-100 mt-2"
+                    @onclick="BackToDashboard">
+                Back to Dashboard
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string Name = string.Empty;
+    private string Email = string.Empty;
+    private string Password = string.Empty;
+    private string Message = string.Empty;
+
+    private bool IsSuccess;
+    private bool IsBusy;
+
+
+    protected override void OnInitialized()
+    {
+        Console.WriteLine($"Logged in: {Session.IsLoggedIn}");
+        Console.WriteLine($"Role: '{Session.Role}'");
+        Console.WriteLine($"Department: '{Session.Department}'");
+
+        if (!Session.IsLoggedIn ||
+            !string.Equals(
+                Session.Role?.Trim(),
+                "Manager",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/manager-login");
+            return;
+        }
+
+        // if (!string.Equals(
+        //     Session.Department?.Trim(),
+        //     "Technical",
+        //     StringComparison.OrdinalIgnoreCase))
+        // {
+        //     Console.WriteLine("Manager department is not Technical.");
+        //     Navigation.NavigateTo("/manager-dashboard");
+        // }
+    }
+
+
+    private async Task CreateTechnicalAccount()
+    {
+        Message = string.Empty;
+        IsSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(Name) ||
+            string.IsNullOrWhiteSpace(Email) ||
+            string.IsNullOrWhiteSpace(Password))
+        {
+            Message = "Name, email and password are required.";
+            return;
+        }
+
+        IsBusy = true;
+
+        try
+        {
+            var result = await Api.CreateDepartmentAccount(
+                new CreateDepartmentAccountRequest
+                {
+                    Name = Name.Trim(),
+                    Email = Email.Trim(),
+                    Password = Password,
+                    Department = "Technical"
+                });
+
+            IsSuccess = result.Success;
+            Message = result.Message;
+
+            // if (result.Success)
+            // {
+            //     Name = string.Empty;
+            //     Email = string.Empty;
+            //     Password = string.Empty;
+            // }
+
+            if (result.Success)
+            {
+                await Task.Delay(1000);
+                Navigation.NavigateTo("/login");
+            }
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void BackToDashboard()
+    {
+        Navigation.NavigateTo("/manager-dashboard");
+    }
+}

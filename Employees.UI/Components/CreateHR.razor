@@ -1,0 +1,144 @@
+﻿@page "/create-hr"
+@rendermode InteractiveServer
+@using Employees.UI.Services
+@inject UserSession Session
+@inject HttpClientWrapper Api
+@inject NavigationManager Navigation
+
+<PageTitle>Create HR</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow mx-auto" style="max-width: 600px">
+        <div class="card-body">
+            <h3>Create HR</h3>
+            <p>Manager: @Session.Name</p>
+
+            <div class="mb-3">
+                <label>Name</label>
+                <input class="form-control"
+                       @bind="Name"
+                       @bind:event="oninput" />
+            </div>
+
+            <div class="mb-3">
+                <label>Email</label>
+                <input class="form-control"
+                       type="email"
+                       @bind="Email"
+                       @bind:event="oninput" />
+            </div>
+
+            <div class="mb-3">
+                <label>Password</label>
+                <input class="form-control"
+                       type="password"
+                       @bind="Password"
+                       @bind:event="oninput" />
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Message))
+            {
+                <div class="alert @(IsSuccess
+                                        ? "alert-success"
+                                        : "alert-danger")">
+                    @Message
+                </div>
+            }
+
+            <button class="btn btn-primary w-100"
+                    @onclick="CreateHRAccount"
+                    disabled="@IsBusy">
+                @(IsBusy ? "Creating..." : "Create HR")
+            </button>
+
+            <button class="btn btn-secondary w-100 mt-2"
+                    @onclick="BackToDashboard">
+                Back to Dashboard
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string Name = string.Empty;
+    private string Email = string.Empty;
+    private string Password = string.Empty;
+    private string Message = string.Empty;
+
+    private bool IsBusy;
+    private bool IsSuccess;
+
+    protected override void OnInitialized()
+    {
+        if (!Session.IsLoggedIn ||
+            !string.Equals(
+                Session.Role?.Trim(),
+                "Manager",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/manager-login");
+            return;
+        }
+
+        if (!string.Equals(
+            Session.Department?.Trim(),
+            "HR",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/manager-dashboard");
+        }
+    }
+
+
+    private async Task CreateHRAccount()
+    {
+        Message = string.Empty;
+        IsSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(Name) ||
+            string.IsNullOrWhiteSpace(Email) ||
+            string.IsNullOrWhiteSpace(Password))
+        {
+            Message = "Name, email and password are required.";
+            return;
+        }
+
+        IsBusy = true;
+
+        try
+        {
+            var result = await Api.CreateDepartmentAccount(
+                new CreateDepartmentAccountRequest
+                {
+                    Name = Name.Trim(),
+                    Email = Email.Trim(),
+                    Password = Password,
+                    Department = "HR"
+                });
+
+            IsSuccess = result.Success;
+            Message = result.Message;
+
+            if (result.Success)
+            {
+                Navigation.NavigateTo("/hr-login");
+            }
+        }
+        catch (Exception)
+        {
+            IsSuccess = false;
+            Message = "Unable to create the HR account. Please try again.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+
+
+    private void BackToDashboard()
+    {
+        Navigation.NavigateTo("/manager-dashboard");
+    }
+}

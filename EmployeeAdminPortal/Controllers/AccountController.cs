@@ -32,93 +32,108 @@ namespace Employee.API.Controllers
         {
             _context = context;
             _configuration = configuration;
-
             _passwordHasher = new PasswordHasher<User>();
-
             _signupValidator = signupValidator;
             _loginValidator = loginValidator;
-
             _logger = logger;
         }
 
+     //MANAGER CREATES EMPLOYEE ACCOUNTS
 
+
+        [Authorize(Roles = "Manager")]
         [HttpPost("signup")]
         public async Task<IActionResult> Signup(
             [FromBody] SignupRequest request)
         {
-            _logger.LogInformation(
-                "Signup attempt for email {Email}",
-                request.Email);
+            var managerId = GetUserId();
 
-            var validationResult =
-                await _signupValidator.ValidateAsync(request);
+            if (managerId == null)
+                return Unauthorized(new { message = "Manager ID not found." });
 
-            if (!validationResult.IsValid)
+            var manager = await _context.Users.FirstOrDefaultAsync(
+                x => x.Id == managerId.Value && x.Role == "Manager");
+
+            if (manager == null)
+                return Forbid();
+
+            var validation = await _signupValidator.ValidateAsync(request);
+
+            if (!validation.IsValid)
             {
                 return BadRequest(new
                 {
-                    message = validationResult.Errors
-                        .First()
-                        .ErrorMessage
+                    message = validation.Errors.First().ErrorMessage
                 });
             }
 
-            var emailExists =
-                await _context.Users
-                    .AnyAsync(x => x.Email == request.Email);
+            string[] allowedTeams;
 
-            if (emailExists)
+            if (string.Equals(
+                manager.Department, "HR",
+                StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogWarning(
-                    "Signup failed. Email already exists: {Email}",
-                    request.Email);
+                allowedTeams = new[]
+                {
+                    "Development", "Designer", "Sales", "SEO"
+                };
+            }
+            else if (string.Equals(
+                manager.Department, "Technical",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                allowedTeams = new[]
+                {
+                    "System Engineer", "DevOps"
+                };
+            }
+            else
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid manager department."
+                });
+            }
 
-                return BadRequest(
-                    "Email already exists.");
+            var selectedTeam = allowedTeams.FirstOrDefault(team =>
+                string.Equals(
+                    team, request.Department?.Trim(),
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (selectedTeam == null)
+            {
+                return BadRequest(new
+                {
+                    message = "You are not authorized to create an employee for this team."
+                });
+            }
+
+            var email = request.Email.Trim();
+
+            if (await _context.Users.AnyAsync(x => x.Email == email))
+            {
+                return BadRequest(new { message = "Email already exists." });
             }
 
             var user = new User
             {
-                Name = request.Name,
-                Email = request.Email,
-
+                Name = request.Name.Trim(),
+                Email = email,
                 Role = "Employee",
-
-                Department = string.Empty,
-
-                AdminId = null,
-                ManagerId = null
+                Department = selectedTeam,
+                ManagerId = manager.Id,
+                AdminId = manager.AdminId
             };
 
-            user.PasswordHash =
-                _passwordHasher.HashPassword(
-                    user,
-                    request.Password);
+            user.PasswordHash = _passwordHasher.HashPassword(
+                user, request.Password);
 
-            try
-            {
-                _context.Users.Add(user);
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
 
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation(
-                    "Account created successfully. UserId {UserId}, Email {Email}",
-                    user.Id,
-                    user.Email);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error occurred while creating account for email {Email}",
-                    request.Email);
-
-                return BadRequest(new
-                {
-                    message =
-                        "An error occurred while creating the account."
-                });
-            }
+            _logger.LogInformation(
+                "Employee created: {UserId}, manager: {ManagerId}",
+                user.Id, manager.Id);
 
             return Ok(new
             {
@@ -126,116 +141,76 @@ namespace Employee.API.Controllers
                 name = user.Name,
                 email = user.Email,
                 role = user.Role,
-                message = "Account created successfully."
+                department = user.Department,
+                managerId = user.ManagerId,
+                message = "Employee account created successfully."
             });
         }
 
-
+        // ADMIN CREATES MANAGERS
 
         [Authorize(Roles = "Admin")]
         [HttpPost("create-manager")]
         public async Task<IActionResult> CreateManager(
             [FromBody] CreateManagerRequest request)
         {
-            _logger.LogInformation(
-                "Admin attempting to create manager with email {Email}",
-                request.Email);
-
             var adminId = GetUserId();
 
             if (adminId == null)
-            {
-                return Unauthorized(
-                    "Admin ID not found.");
-            }
+                return Unauthorized(new { message = "Admin ID not found." });
 
+            var admin = await _context.Users.FirstOrDefaultAsync(
+                x => x.Id == adminId.Value && x.Role == "Admin");
 
-            var admin = await _context.Users
-                .FirstOrDefaultAsync(x =>
-                    x.Id == adminId.Value);
-
-            if (admin == null ||
-                !string.Equals(
-                    admin.Role,
-                    "Admin",
-                    StringComparison.OrdinalIgnoreCase))
-            {
+            if (admin == null)
                 return Forbid();
-            }
 
-            var validDepartments = new[]
-            {
-                "HR",
-                "Technical"
-            };
-
-            if (!validDepartments.Contains(
-                    request.Department,
-                    StringComparer.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(request.Name) ||
+                string.IsNullOrWhiteSpace(request.Email) ||
+                string.IsNullOrWhiteSpace(request.Password))
             {
                 return BadRequest(new
                 {
-                    message =
-                        "Manager department must be HR or Technical."
+                    message = "Name, email and password are required."
                 });
             }
 
-            var emailExists =
-                await _context.Users
-                    .AnyAsync(x =>
-                        x.Email == request.Email);
+            var department = request.Department?.Trim();
 
-            if (emailExists)
+            if (department == null ||
+                !(department.Equals("HR", StringComparison.OrdinalIgnoreCase) ||
+                  department.Equals("Technical", StringComparison.OrdinalIgnoreCase)))
             {
-                return BadRequest(
-                    "Email already exists.");
+                return BadRequest(new
+                {
+                    message = "Manager department must be HR or Technical."
+                });
+            }
+
+            if (await _context.Users.AnyAsync(
+                x => x.Email == request.Email.Trim()))
+            {
+                return BadRequest(new { message = "Email already exists." });
             }
 
             var manager = new User
             {
-                Name = request.Name,
-
-                Email = request.Email,
-
+                Name = request.Name.Trim(),
+                Email = request.Email.Trim(),
                 Role = "Manager",
-
-                Department = request.Department,
-
-
-                AdminId = adminId.Value,
-
+                Department = department.Equals(
+                    "HR", StringComparison.OrdinalIgnoreCase)
+                    ? "HR"
+                    : "Technical",
+                AdminId = admin.Id,
                 ManagerId = null
             };
 
-            manager.PasswordHash =
-                _passwordHasher.HashPassword(
-                    manager,
-                    request.Password);
+            manager.PasswordHash = _passwordHasher.HashPassword(
+                manager, request.Password);
 
-            try
-            {
-                _context.Users.Add(manager);
-
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation(
-                    "Manager created successfully. ManagerId {ManagerId}, AdminId {AdminId}",
-                    manager.Id,
-                    adminId.Value);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error creating Manager for AdminId {AdminId}",
-                    adminId.Value);
-
-                return BadRequest(new
-                {
-                    message =
-                        "An error occurred while creating the manager."
-                });
-            }
+            _context.Users.Add(manager);
+            await _context.SaveChangesAsync();
 
             return Ok(new
             {
@@ -250,65 +225,143 @@ namespace Employee.API.Controllers
         }
 
 
+        //  MANAGER CREATES HR OR TECHNICAL ACCOUNTS
 
+        [Authorize(Roles = "Manager")]
+        [HttpPost("create-department-account")]
+        public async Task<IActionResult> CreateDepartmentAccount(
+            [FromBody] CreateDepartmentAccountRequest request)
+        {
+            var managerId = GetUserId();
+
+            if (managerId == null)
+                return Unauthorized(new { message = "Manager ID not found." });
+
+            var manager = await _context.Users.FirstOrDefaultAsync(
+                x => x.Id == managerId.Value && x.Role == "Manager");
+
+            if (manager == null)
+                return Forbid();
+
+            if (string.IsNullOrWhiteSpace(request.Name) ||
+                string.IsNullOrWhiteSpace(request.Email) ||
+                string.IsNullOrWhiteSpace(request.Password))
+            {
+                return BadRequest(new
+                {
+                    message = "Name, email and password are required."
+                });
+            }
+
+            var requestedDepartment = request.Department?.Trim();
+
+            if (string.IsNullOrWhiteSpace(requestedDepartment) ||
+                !(requestedDepartment.Equals(
+                      "HR", StringComparison.OrdinalIgnoreCase) ||
+                  requestedDepartment.Equals(
+                      "Technical", StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new
+                {
+                    message = "Department must be HR or Technical."
+                });
+            }
+
+            // A manager can create accounts only in their own department.
+            if (!string.Equals(
+                manager.Department?.Trim(),
+                requestedDepartment,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new
+                {
+                    message = "You can create accounts only for your own department."
+                });
+            }
+
+            var email = request.Email.Trim();
+
+            if (await _context.Users.AnyAsync(x => x.Email == email))
+            {
+                return BadRequest(new { message = "Email already exists." });
+            }
+
+            var department = requestedDepartment.Equals(
+                "HR", StringComparison.OrdinalIgnoreCase)
+                ? "HR"
+                : "Technical";
+
+            var user = new User
+            {
+                Name = request.Name.Trim(),
+                Email = email,
+                Role = department,
+                Department = department,
+                AdminId = manager.AdminId,
+                ManagerId = manager.Id
+            };
+
+            user.PasswordHash = _passwordHasher.HashPassword(
+                user, request.Password);
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "{Role} account created with ID {UserId}",
+                user.Role, user.Id);
+
+            return Ok(new
+            {
+                id = user.Id,
+                name = user.Name,
+                email = user.Email,
+                role = user.Role,
+                department = user.Department,
+                managerId = user.ManagerId,
+                message = $"{user.Role} account created successfully."
+            });
+        }
+
+
+
+
+        //  LOGIN FOR ALL ACCOUNT TYPES
+
+
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login(
             [FromBody] LoginRequest request)
         {
-            _logger.LogInformation(
-                "Login attempt for email {Email}",
-                request.Email);
+            var validation = await _loginValidator.ValidateAsync(request);
 
-
-            var validationResult =
-                await _loginValidator.ValidateAsync(request);
-
-            if (!validationResult.IsValid)
+            if (!validation.IsValid)
             {
-                _logger.LogWarning(
-                    "Login validation failed for email {Email}",
-                    request.Email);
-
-                return BadRequest(
-                    validationResult.Errors.Select(x => new
-                    {
-                        field = x.PropertyName,
-                        message = x.ErrorMessage
-                    })
-                );
+                return BadRequest(new
+                {
+                    message = validation.Errors.First().ErrorMessage
+                });
             }
 
+            var email = request.Email.Trim();
 
-            var user =
-                await _context.Users
-                    .FirstOrDefaultAsync(x =>
-                        x.Email == request.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(
+                x => x.Email == email);
 
             if (user == null)
             {
-                _logger.LogWarning(
-                    "Login failed. User not found for email {Email}",
-                    request.Email);
-
                 return Unauthorized(new
                 {
                     message = "Invalid email or password."
                 });
             }
 
-            var result =
-                _passwordHasher.VerifyHashedPassword(
-                    user,
-                    user.PasswordHash,
-                    request.Password);
+            var passwordResult = _passwordHasher.VerifyHashedPassword(
+                user, user.PasswordHash, request.Password);
 
-            if (result ==
-                PasswordVerificationResult.Failed)
+            if (passwordResult == PasswordVerificationResult.Failed)
             {
-                _logger.LogWarning(
-                    "Login failed. Invalid password for email {Email}",
-                    request.Email);
-
                 return Unauthorized(new
                 {
                     message = "Invalid email or password."
@@ -317,175 +370,107 @@ namespace Employee.API.Controllers
 
             var token = GenerateJwtToken(user);
 
-            _logger.LogInformation(
-                "Login successful. UserId {UserId}, Role {Role}",
-                user.Id,
-                user.Role);
-
             return Ok(new
             {
                 id = user.Id,
-
                 name = user.Name,
-
                 email = user.Email,
-
                 role = user.Role,
-
                 department = user.Department,
-
-                token = token,
-
+                token,
                 message = "Login successful."
             });
         }
 
+        // 5. JWT TOKEN GENERATION
 
         private string GenerateJwtToken(User user)
         {
-            var key =
-                _configuration["Jwt:Key"];
-
-            var issuer =
-                _configuration["Jwt:Issuer"];
-
-            var audience =
-                _configuration["Jwt:Audience"];
+            var key = _configuration["Jwt:Key"];
+            var issuer = _configuration["Jwt:Issuer"];
+            var audience = _configuration["Jwt:Audience"];
 
             if (string.IsNullOrWhiteSpace(key))
-            {
                 throw new InvalidOperationException(
                     "JWT key is not configured.");
-            }
 
-            var securityKey =
-                new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(key));
+            var securityKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(key));
 
-            var credentials =
-                new SigningCredentials(
-                    securityKey,
-                    SecurityAlgorithms.HmacSha256);
+            var credentials = new SigningCredentials(
+                securityKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim>
             {
-
                 new Claim(
-                    ClaimTypes.NameIdentifier,
-                    user.Id.ToString()),
-
-
-                new Claim(
-                    ClaimTypes.Name,
-                    user.Name),
-
-                new Claim(
-                    ClaimTypes.Email,
-                    user.Email),
-
-                new Claim(
-                    ClaimTypes.Role,
-                    user.Role)
+                    ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role)
             };
 
-            // Add Department only when it has a value
             if (!string.IsNullOrWhiteSpace(user.Department))
             {
-                claims.Add(
-                    new Claim(
-                        "Department",
-                        user.Department));
+                claims.Add(new Claim("Department", user.Department));
             }
 
-            var tokenDescriptor =
-                new SecurityTokenDescriptor
-                {
-                    Subject =
-                        new ClaimsIdentity(claims),
+            var descriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddHours(2),
+                Issuer = issuer,
+                Audience = audience,
+                SigningCredentials = credentials
+            };
 
-                    Expires =
-                        DateTime.UtcNow.AddHours(2),
-
-                    Issuer = issuer,
-
-                    Audience = audience,
-
-                    SigningCredentials =
-                        credentials
-                };
-
-            var tokenHandler =
-                new JwtSecurityTokenHandler();
-
-            var token =
-                tokenHandler.CreateToken(
-                    tokenDescriptor);
-
-            return tokenHandler.WriteToken(token);
+            var handler = new JwtSecurityTokenHandler();
+            return handler.WriteToken(handler.CreateToken(descriptor));
         }
 
+
+        // 6. GET LOGGED-IN USER ID
 
         private int? GetUserId()
         {
-            var userIdClaim =
-                User.FindFirst(
-                    ClaimTypes.NameIdentifier)?.Value;
+            var value = User.FindFirst(
+                ClaimTypes.NameIdentifier)?.Value;
 
-            if (string.IsNullOrWhiteSpace(userIdClaim))
-            {
-                userIdClaim =
-                    User.FindFirst("sub")?.Value;
-            }
+            if (string.IsNullOrWhiteSpace(value))
+                value = User.FindFirst("sub")?.Value;
 
-            if (int.TryParse(
-                    userIdClaim,
-                    out int userId))
-            {
-                return userId;
-            }
-
-            return null;
+            return int.TryParse(value, out var id) ? id : null;
         }
 
+        // 7. REQUEST MODELS
 
         public class SignupRequest
         {
-            public string Name { get; set; }
-                = string.Empty;
-
-            public string Email { get; set; }
-                = string.Empty;
-
-            public string Department { get; set; }
-                = string.Empty;
-
-            public string Password { get; set; }
-                = string.Empty;
+            public string Name { get; set; } = string.Empty;
+            public string Email { get; set; } = string.Empty;
+            public string Department { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
         }
-
 
         public class LoginRequest
         {
-            public string Email { get; set; }
-                = string.Empty;
-
-            public string Password { get; set; }
-                = string.Empty;
+            public string Email { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
         }
 
         public class CreateManagerRequest
         {
-            public string Name { get; set; }
-                = string.Empty;
+            public string Name { get; set; } = string.Empty;
+            public string Email { get; set; } = string.Empty;
+            public string Department { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
+        }
 
-            public string Email { get; set; }
-                = string.Empty;
-
-            public string Department { get; set; }
-                = string.Empty;
-
-            public string Password { get; set; }
-                = string.Empty;
+        public class CreateDepartmentAccountRequest
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Email { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
+            public string Department { get; set; } = string.Empty;
         }
     }
 }

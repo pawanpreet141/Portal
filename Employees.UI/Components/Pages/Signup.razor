@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Employees.UI.Services
 @inject HttpClientWrapper Api
+@inject UserSession Session
 @inject NavigationManager Navigation
 
 <PageTitle>Employee Signup</PageTitle>
@@ -10,128 +11,83 @@
     <div class="card shadow mx-auto" style="max-width:500px">
         <div class="card-header">
             <h3>Employee Signup</h3>
-            <p>Department: @Department</p>
+            <p>Manager: @Session.Name</p>
+            <p>Department: @Session.Department</p>
+            <p>Selected Team: @Department</p>
         </div>
 
         <div class="card-body">
-            <div class="mb-3">
-                <label>Name</label>
-                <input class="form-control" @bind="Name" />
-            </div>
 
-            <div class="mb-3">
-                <label>Email</label>
-                <input class="form-control" type="email" @bind="Email" />
-            </div>
+            @if (!IsAllowedTeam)
+            {
+                <div class="alert alert-danger">
+                    Invalid team or unauthorized department.
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input class="form-control"
+                           @bind="Name" />
+                </div>
 
-            <div class="mb-3">
-                <label>Password</label>
-                <input class="form-control" type="password" @bind="Password" />
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Team</label>
+                    <select class="form-select" @bind="Department">
+                        @foreach (var team in AvailableTeams)
+                        {
+                            <option value="@team">@team</option>
+                        }
+                    </select>
+                </div>
 
-            <div class="mb-3">
-                <label>Confirm Password</label>
-                <input class="form-control"
-                       type="password"
-                       @bind="ConfirmPassword" />
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input class="form-control"
+                           type="email"
+                           @bind="Email" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input class="form-control"
+                           type="password"
+                           @bind="Password" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Confirm Password</label>
+                    <input class="form-control"
+                           type="password"
+                           @bind="ConfirmPassword" />
+                </div>
+            }
 
             @if (!string.IsNullOrWhiteSpace(ErrorMessage))
             {
-                <div class="alert alert-danger">@ErrorMessage</div>
+                <div class="alert alert-danger">
+                    @ErrorMessage
+                </div>
             }
 
             @if (!string.IsNullOrWhiteSpace(SuccessMessage))
             {
-                <div class="alert alert-success">@SuccessMessage</div>
+                <div class="alert alert-success">
+                    @SuccessMessage
+                </div>
             }
 
             <button class="btn btn-success w-100"
                     @onclick="SignupUser"
-                    disabled="@IsBusy">
-                Sign Up
+                    disabled="@(!IsAllowedTeam || IsBusy)">
+                @(IsBusy ? "Creating Account..." : "Sign Up")
             </button>
 
-            <a href="/manager-dashboard" class="btn btn-link w-100">
+            <button class="btn btn-link w-100"
+                    @onclick="BackToDashboard">
                 Back to dashboard
-            </a>
+            </button>
         </div>
     </div>
 </div>
-@* 
-@code {
-    [SupplyParameterFromQuery(Name = "department")]
-    public string Department { get; set; } = string.Empty;
-
-    private string Name = string.Empty;
-    private string Email = string.Empty;
-    private string Password = string.Empty;
-    private string ConfirmPassword = string.Empty;
-    private string ErrorMessage = string.Empty;
-    private string SuccessMessage = string.Empty;
-    private bool IsBusy;
-
-    private static readonly string[] AllowedDepartments =
-    {
-        "Development", "Designer", "Sales", "SEO",
-        "System Engineer", "DevOps"
-    };
-
-    private async Task SignupUser()
-    {
-        ErrorMessage = string.Empty;
-        SuccessMessage = string.Empty;
-
-        if (!AllowedDepartments.Contains(
-            Department, StringComparer.OrdinalIgnoreCase))
-        {
-            ErrorMessage = "Please select a valid department.";
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(Name) ||
-            string.IsNullOrWhiteSpace(Email) ||
-            string.IsNullOrWhiteSpace(Password))
-        {
-            ErrorMessage = "All fields are required.";
-            return;
-        }
-
-        if (Password != ConfirmPassword)
-        {
-            ErrorMessage = "Passwords do not match.";
-            return;
-        }
-
-        IsBusy = true;
-
-        try
-        {
-            var result = await Api.Signup(new SignupRequest
-            {
-                Name = Name,
-                Email = Email,
-                Password = Password,
-                Department = Department
-            });
-
-            if (result == null || !result.Success)
-            {
-                ErrorMessage = result?.Message ?? "Signup failed.";
-                return;
-            }
-
-            SuccessMessage = "Account created successfully.";
-
-            await Task.Delay(1000);
-
-           // Navigation.NavigateTo("/employee-login");
-           Navigation.NavigateTo("/login");
-
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-} *@
