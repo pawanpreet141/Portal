@@ -149,6 +149,83 @@ namespace Employee.API.Controllers
 
         // ADMIN CREATES MANAGERS
 
+        //[Authorize(Roles = "Admin")]
+        //[HttpPost("create-manager")]
+        //public async Task<IActionResult> CreateManager(
+        //    [FromBody] CreateManagerRequest request)
+        //{
+        //    var adminId = GetUserId();
+
+        //    if (adminId == null)
+        //        return Unauthorized(new { message = "Admin ID not found." });
+
+        //    var admin = await _context.Users.FirstOrDefaultAsync(
+        //        x => x.Id == adminId.Value && x.Role == "Admin");
+
+        //    if (admin == null)
+        //        return Forbid();
+
+        //    if (string.IsNullOrWhiteSpace(request.Name) ||
+        //        string.IsNullOrWhiteSpace(request.Email) ||
+        //        string.IsNullOrWhiteSpace(request.Password))
+        //    {
+        //        return BadRequest(new
+        //        {
+        //            message = "Name, email and password are required."
+        //        });
+        //    }
+
+        //    var department = request.Department?.Trim();
+
+        //    if (department == null ||
+        //        !(department.Equals("HR", StringComparison.OrdinalIgnoreCase) ||
+        //          department.Equals("Technical", StringComparison.OrdinalIgnoreCase)))
+        //    {
+        //        return BadRequest(new
+        //        {
+        //            message = "Manager department must be HR or Technical."
+        //        });
+        //    }
+
+        //    if (await _context.Users.AnyAsync(
+        //        x => x.Email == request.Email.Trim()))
+        //    {
+        //        return BadRequest(new { message = "Email already exists." });
+        //    }
+
+        //    var manager = new User
+        //    {
+        //        Name = request.Name.Trim(),
+        //        Email = request.Email.Trim(),
+        //        Role = "Manager",
+        //        Department = department.Equals(
+        //            "HR", StringComparison.OrdinalIgnoreCase)
+        //            ? "HR"
+        //            : "Technical",
+        //        AdminId = admin.Id,
+        //        ManagerId = null
+        //    };
+
+        //    manager.PasswordHash = _passwordHasher.HashPassword(
+        //        manager, request.Password);
+
+        //    _context.Users.Add(manager);
+        //    await _context.SaveChangesAsync();
+
+        //    return Ok(new
+        //    {
+        //        id = manager.Id,
+        //        name = manager.Name,
+        //        email = manager.Email,
+        //        role = manager.Role,
+        //        department = manager.Department,
+        //        adminId = manager.AdminId,
+        //        message = "Manager created successfully."
+        //    });
+        //}
+
+
+
         [Authorize(Roles = "Admin")]
         [HttpPost("create-manager")]
         public async Task<IActionResult> CreateManager(
@@ -175,20 +252,9 @@ namespace Employee.API.Controllers
                 });
             }
 
-            var department = request.Department?.Trim();
+            var email = request.Email.Trim();
 
-            if (department == null ||
-                !(department.Equals("HR", StringComparison.OrdinalIgnoreCase) ||
-                  department.Equals("Technical", StringComparison.OrdinalIgnoreCase)))
-            {
-                return BadRequest(new
-                {
-                    message = "Manager department must be HR or Technical."
-                });
-            }
-
-            if (await _context.Users.AnyAsync(
-                x => x.Email == request.Email.Trim()))
+            if (await _context.Users.AnyAsync(x => x.Email == email))
             {
                 return BadRequest(new { message = "Email already exists." });
             }
@@ -196,12 +262,9 @@ namespace Employee.API.Controllers
             var manager = new User
             {
                 Name = request.Name.Trim(),
-                Email = request.Email.Trim(),
+                Email = email,
                 Role = "Manager",
-                Department = department.Equals(
-                    "HR", StringComparison.OrdinalIgnoreCase)
-                    ? "HR"
-                    : "Technical",
+                Department = string.Empty,
                 AdminId = admin.Id,
                 ManagerId = null
             };
@@ -267,17 +330,17 @@ namespace Employee.API.Controllers
                 });
             }
 
-            // A manager can create accounts only in their own department.
-            if (!string.Equals(
-                manager.Department?.Trim(),
-                requestedDepartment,
-                StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest(new
-                {
-                    message = "You can create accounts only for your own department."
-                });
-            }
+            //// A manager can create accounts only in their own department.
+            //if (!string.Equals(
+            //    manager.Department?.Trim(),
+            //    requestedDepartment,
+            //    StringComparison.OrdinalIgnoreCase))
+            //{
+            //    return BadRequest(new
+            //    {
+            //        message = "You can create accounts only for your own department."
+            //    });
+            //}
 
             var email = request.Email.Trim();
 
@@ -295,7 +358,7 @@ namespace Employee.API.Controllers
             {
                 Name = request.Name.Trim(),
                 Email = email,
-                Role = department,
+                Role = "Employee" ,
                 Department = department,
                 AdminId = manager.AdminId,
                 ManagerId = manager.Id
@@ -461,7 +524,7 @@ namespace Employee.API.Controllers
         {
             public string Name { get; set; } = string.Empty;
             public string Email { get; set; } = string.Empty;
-            public string Department { get; set; } = string.Empty;
+          //  public string Department { get; set; } = string.Empty;
             public string Password { get; set; } = string.Empty;
         }
 

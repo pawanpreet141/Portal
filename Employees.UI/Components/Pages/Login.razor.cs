@@ -60,31 +60,83 @@ namespace Employees.UI.Components.Pages
                 Console.WriteLine($"LOGIN ROLE: {UserSession.Role}");
                 Console.WriteLine($"LOGIN STATUS: {UserSession.IsLoggedIn}");
 
+               // AuthProvider.NotifyUserLogin();
+
+                //if (result.Role?.Trim().Equals(
+                //    "Admin",
+                //    StringComparison.OrdinalIgnoreCase) == true)
+                //{
+                //    Navigation.NavigateTo("/create-manager");
+                //}
+                //else if (result.Role?.Trim().Equals(
+                //    "Manager",
+                //    StringComparison.OrdinalIgnoreCase) == true)
+                //{
+                //    Navigation.NavigateTo("/manager-dashboard");
+                //}
+                //else if (result.Role?.Trim().Equals(
+                //    "Employee",
+                //    StringComparison.OrdinalIgnoreCase) == true)
+                //{
+                //    Navigation.NavigateTo("/employee-dashboard");
+                //}
+                //else
+                //{
+                //    ErrorMessage = $"Unexpected role: {result.Role}";
+                //}
+
                 AuthProvider.NotifyUserLogin();
 
-                if (result.Role?.Trim().Equals(
-                    "Admin",
-                    StringComparison.OrdinalIgnoreCase) == true)
+                var role = result.Role?.Trim();
+
+                if (string.Equals(role, "Admin",
+                    StringComparison.OrdinalIgnoreCase))
                 {
                     Navigation.NavigateTo("/create-manager");
                 }
-                else if (result.Role?.Trim().Equals(
-                    "Manager",
-                    StringComparison.OrdinalIgnoreCase) == true)
+                else if (string.Equals(role, "Manager",
+                    StringComparison.OrdinalIgnoreCase))
                 {
                     Navigation.NavigateTo("/manager-dashboard");
                 }
-                else if (result.Role?.Trim().Equals(
-                    "Employee",
-                    StringComparison.OrdinalIgnoreCase) == true)
+                else if (string.Equals(role, "HR",
+                    StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(role, "Technical",
+                    StringComparison.OrdinalIgnoreCase))
                 {
-                    Navigation.NavigateTo("/employee-dashboard");
+                    Navigation.NavigateTo("/signup");
+                }
+                //else if (string.Equals(role, "Employee",
+                //    StringComparison.OrdinalIgnoreCase))
+                //{
+                //    Navigation.NavigateTo("/employee-dashboard");
+                //}
+
+
+                else if (string.Equals(role, "Employee",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    if (string.Equals(
+                        result.Department?.Trim(),
+                        "HR",
+                        StringComparison.OrdinalIgnoreCase)
+                        ||
+                        string.Equals(
+                        result.Department?.Trim(),
+                        "Technical",
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        Navigation.NavigateTo("/signup");
+                    }
+                    else
+                    {
+                        Navigation.NavigateTo("/employee-dashboard");
+                    }
                 }
                 else
                 {
                     ErrorMessage = $"Unexpected role: {result.Role}";
                 }
-
             }
             catch (Exception ex)
             {
