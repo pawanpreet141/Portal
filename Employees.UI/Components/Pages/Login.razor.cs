@@ -74,72 +74,16 @@ namespace Employees.UI.Components.Pages
                 {
                     Navigation.NavigateTo("/manager-dashboard");
                 }
-                //else if (result.Role?.Trim().Equals(
-                //    "Employee",
-                //    StringComparison.OrdinalIgnoreCase) == true)
-                //{
-                //    Navigation.NavigateTo("/employee-dashboard");
-                //}
-
-
-
                 else if (result.Role?.Trim().Equals(
                     "Employee",
                     StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    if (string.Equals(
-                        result.Department?.Trim(),
-                        "HR",
-                        StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(
-                        result.Department?.Trim(),
-                        "Technical",
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        Navigation.NavigateTo("/signup", forceLoad: true);
-                    }
-                    else
-                    {
-                        Navigation.NavigateTo("/employee-dashboard");
-                    }
+                    Navigation.NavigateTo("/employee-dashboard");
                 }
-
-
                 else
                 {
                     ErrorMessage = $"Unexpected role: {result.Role}";
                 }
-
-                //AuthProvider.NotifyUserLogin();
-
-                //var role = result.Role?.Trim();
-
-                //if (string.Equals(role, "Admin",
-                //    StringComparison.OrdinalIgnoreCase))
-                //{
-                //    Navigation.NavigateTo("/create-manager");
-                //}
-                //else if (string.Equals(role, "Manager",
-                //    StringComparison.OrdinalIgnoreCase))
-                //{
-                //    Navigation.NavigateTo("/manager-dashboard");
-                //}
-                //else if (string.Equals(role, "HR",
-                //    StringComparison.OrdinalIgnoreCase) ||
-                //         string.Equals(role, "Technical",
-                //    StringComparison.OrdinalIgnoreCase))
-                //{
-                //    Navigation.NavigateTo("/signup");
-                //}
-                //else if (string.Equals(role, "Employee",
-                //    StringComparison.OrdinalIgnoreCase))
-                //{
-                //    Navigation.NavigateTo("/employee-dashboard");
-                //}
-                //else
-                //{
-                //    ErrorMessage = $"Unexpected role: {result.Role}";
-                //}
             }
             catch (Exception ex)
             {
