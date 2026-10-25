@@ -38,7 +38,7 @@ namespace Employee.API.Middleware
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Title = "An unexpected error occurred.",
-                Detail = "Please try again later.",
+                Detail = exception.Message,// "Please try again later.",
                 Instance = httpContext.Request.Path
             };
 

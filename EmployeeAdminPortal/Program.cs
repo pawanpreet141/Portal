@@ -1,3 +1,4 @@
+using Employee.API.Healthcheck;
 using Employee.API.Middleware;
 using Employee.API.Validators;
 using Employee.BusinessLogic;
@@ -7,6 +8,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
@@ -83,24 +85,28 @@ builder.Services
 
 //// sqlite
 
-//string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-//builder.Services.AddDbContext<EmployeeDbContext>(options =>
-//    options.UseSqlite(connectionString));
+string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<EmployeeDbContext>(options =>
+    options.UseSqlite(connectionString));
+builder.Services.AddHealthChecks()
+    .AddCheck("sqlite_db_check", new SqliteHealthCheck(connectionString),
+              failureStatus: HealthStatus.Unhealthy,
+              tags: new[] { "ready" });
 
 
 //MYSQL 
 
-builder.Services.AddDbContext<EmployeeDbContext>(
-    options =>
-        options.UseMySql(
-            builder.Configuration
-                .GetConnectionString("DefaultConnection"),
+//builder.Services.AddDbContext<EmployeeDbContext>(
+//    options =>
+//        options.UseMySql(
+//            builder.Configuration
+//                .GetConnectionString("DefaultConnection"),
 
-            ServerVersion.AutoDetect(
-                builder.Configuration
-                    .GetConnectionString("DefaultConnection")
-            )
-        ));
+//            ServerVersion.AutoDetect(
+//                builder.Configuration
+//                    .GetConnectionString("DefaultConnection")
+//            )
+//        ));
 
 
 
@@ -168,15 +174,15 @@ var app = builder.Build();
 
 
 app.UseSerilogRequestLogging();
-
+app.MapHealthChecks("/healthz");
 
 ////sqlite
 
-//using (var scope = app.Services.CreateScope())
-//{
-//    var dbContext = scope.ServiceProvider.GetRequiredService<EmployeeDbContext>();
-//    dbContext.Database.EnsureCreated();
-//}
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<EmployeeDbContext>();
+    dbContext.Database.EnsureCreated();
+}
 
 
 if (app.Environment.IsDevelopment())
