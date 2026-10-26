@@ -38,24 +38,58 @@ namespace Employee.API.Controllers
             _logger = logger;
         }
 
-     //MANAGER CREATES EMPLOYEE ACCOUNTS
+        //HR and Technical  CREATES EMPLOYEE ACCOUNTS
 
 
-        [Authorize(Roles = "Manager")]
+
+
+        [Authorize(Roles = "HR,Technical")]
         [HttpPost("signup")]
         public async Task<IActionResult> Signup(
             [FromBody] SignupRequest request)
         {
-            var managerId = GetUserId();
+            var userId = GetUserId();
 
-            if (managerId == null)
-                return Unauthorized(new { message = "Manager ID not found." });
+            if (userId == null)
+                return Unauthorized(new { message = "User ID not found." });
 
-            var manager = await _context.Users.FirstOrDefaultAsync(
-                x => x.Id == managerId.Value && x.Role == "Manager");
+            // Find the logged-in HR or Technical user.
+            var creator = await _context.Users.FirstOrDefaultAsync(
+                x => x.Id == userId.Value);
 
-            if (manager == null)
+            if (creator == null)
+                return Unauthorized(new { message = "User not found." });
+
+            string[] allowedTeams;
+
+            if (string.Equals(
+                creator.Role, "HR",
+                StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(
+                creator.Department, "HR",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                allowedTeams = new[]
+                {
+            "Development", "Designer", "Sales", "SEO"
+        };
+            }
+            else if (string.Equals(
+                creator.Role, "Technical",
+                StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(
+                creator.Department, "Technical",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                allowedTeams = new[]
+                {
+            "System Engineer", "DevOps"
+        };
+            }
+            else
+            {
                 return Forbid();
+            }
 
             var validation = await _signupValidator.ValidateAsync(request);
 
@@ -67,37 +101,10 @@ namespace Employee.API.Controllers
                 });
             }
 
-            string[] allowedTeams;
-
-            if (string.Equals(
-                manager.Department, "HR",
-                StringComparison.OrdinalIgnoreCase))
-            {
-                allowedTeams = new[]
-                {
-                    "Development", "Designer", "Sales", "SEO"
-                };
-            }
-            else if (string.Equals(
-                manager.Department, "Technical",
-                StringComparison.OrdinalIgnoreCase))
-            {
-                allowedTeams = new[]
-                {
-                    "System Engineer", "DevOps"
-                };
-            }
-            else
-            {
-                return BadRequest(new
-                {
-                    message = "Invalid manager department."
-                });
-            }
-
             var selectedTeam = allowedTeams.FirstOrDefault(team =>
                 string.Equals(
-                    team, request.Department?.Trim(),
+                    team,
+                    request.Department?.Trim(),
                     StringComparison.OrdinalIgnoreCase));
 
             if (selectedTeam == null)
@@ -112,40 +119,153 @@ namespace Employee.API.Controllers
 
             if (await _context.Users.AnyAsync(x => x.Email == email))
             {
-                return BadRequest(new { message = "Email already exists." });
+                return BadRequest(new
+                {
+                    message = "Email already exists."
+                });
             }
 
-            var user = new User
+            var employee = new User
             {
                 Name = request.Name.Trim(),
                 Email = email,
                 Role = "Employee",
                 Department = selectedTeam,
-                ManagerId = manager.Id,
-                AdminId = manager.AdminId
+
+                // Preserve the original Manager and Admin relationships.
+                ManagerId = creator.ManagerId ?? creator.Id,
+                AdminId = creator.AdminId
             };
 
-            user.PasswordHash = _passwordHasher.HashPassword(
-                user, request.Password);
+            employee.PasswordHash = _passwordHasher.HashPassword(
+                employee, request.Password);
 
-            _context.Users.Add(user);
+            _context.Users.Add(employee);
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Employee created: {UserId}, manager: {ManagerId}",
-                user.Id, manager.Id);
+                "Employee created: {UserId}, by {CreatorId}",
+                employee.Id, creator.Id);
 
             return Ok(new
             {
-                id = user.Id,
-                name = user.Name,
-                email = user.Email,
-                role = user.Role,
-                department = user.Department,
-                managerId = user.ManagerId,
+                id = employee.Id,
+                name = employee.Name,
+                email = employee.Email,
+                role = employee.Role,
+                department = employee.Department,
+                managerId = employee.ManagerId,
                 message = "Employee account created successfully."
             });
         }
+
+
+
+        //[Authorize(Roles = "Manager")]
+        //[HttpPost("signup")]
+        //public async Task<IActionResult> Signup(
+        //    [FromBody] SignupRequest request)
+        //{
+        //    var managerId = GetUserId();
+
+        //    if (managerId == null)
+        //        return Unauthorized(new { message = "Manager ID not found." });
+
+        //    var manager = await _context.Users.FirstOrDefaultAsync(
+        //        x => x.Id == managerId.Value && x.Role == "Manager");
+
+        //    if (manager == null)
+        //        return Forbid();
+
+        //    var validation = await _signupValidator.ValidateAsync(request);
+
+        //    if (!validation.IsValid)
+        //    {
+        //        return BadRequest(new
+        //        {
+        //            message = validation.Errors.First().ErrorMessage
+        //        });
+        //    }
+
+        //    string[] allowedTeams;
+
+        //    if (string.Equals(
+        //        manager.Department, "HR",
+        //        StringComparison.OrdinalIgnoreCase))
+        //    {
+        //        allowedTeams = new[]
+        //        {
+        //            "Development", "Designer", "Sales", "SEO"
+        //        };
+        //    }
+        //    else if (string.Equals(
+        //        manager.Department, "Technical",
+        //        StringComparison.OrdinalIgnoreCase))
+        //    {
+        //        allowedTeams = new[]
+        //        {
+        //            "System Engineer", "DevOps"
+        //        };
+        //    }
+        //    else
+        //    {
+        //        return BadRequest(new
+        //        {
+        //            message = "Invalid manager department."
+        //        });
+        //    }
+
+        //    var selectedTeam = allowedTeams.FirstOrDefault(team =>
+        //        string.Equals(
+        //            team, request.Department?.Trim(),
+        //            StringComparison.OrdinalIgnoreCase));
+
+        //    if (selectedTeam == null)
+        //    {
+        //        return BadRequest(new
+        //        {
+        //            message = "You are not authorized to create an employee for this team."
+        //        });
+        //    }
+
+        //    var email = request.Email.Trim();
+
+        //    if (await _context.Users.AnyAsync(x => x.Email == email))
+        //    {
+        //        return BadRequest(new { message = "Email already exists." });
+        //    }
+
+        //    var user = new User
+        //    {
+        //        Name = request.Name.Trim(),
+        //        Email = email,
+        //        Role = "Employee",
+        //        Department = selectedTeam,
+        //        ManagerId = manager.Id,
+        //        AdminId = manager.AdminId
+        //    };
+
+        //    user.PasswordHash = _passwordHasher.HashPassword(
+        //        user, request.Password);
+
+        //    _context.Users.Add(user);
+        //    await _context.SaveChangesAsync();
+
+        //    _logger.LogInformation(
+        //        "Employee created: {UserId}, manager: {ManagerId}",
+        //        user.Id, manager.Id);
+
+        //    return Ok(new
+        //    {
+        //        id = user.Id,
+        //        name = user.Name,
+        //        email = user.Email,
+        //        role = user.Role,
+        //        department = user.Department,
+        //        managerId = user.ManagerId,
+        //        message = "Employee account created successfully."
+        //    });
+        //}
 
         // ADMIN CREATES MANAGERS
 
@@ -354,15 +474,33 @@ namespace Employee.API.Controllers
                 ? "HR"
                 : "Technical";
 
+
+            var assignedRole = department == "HR"
+                ? "HR"
+                : "Technical";
+
             var user = new User
             {
                 Name = request.Name.Trim(),
                 Email = email,
-                Role = "Employee" ,
+                Role = assignedRole,
                 Department = department,
                 AdminId = manager.AdminId,
                 ManagerId = manager.Id
             };
+
+
+
+
+            //var user = new User
+            //{
+            //    Name = request.Name.Trim(),
+            //    Email = email,
+            //    Role = "Employee",
+            //    Department = department,
+            //    AdminId = manager.AdminId,
+            //    ManagerId = manager.Id
+            //};
 
             user.PasswordHash = _passwordHasher.HashPassword(
                 user, request.Password);

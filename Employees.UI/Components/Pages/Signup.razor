@@ -11,7 +11,9 @@
     <div class="card shadow mx-auto" style="max-width:500px">
         <div class="card-header">
             <h3>Employee Signup</h3>
-            <p>Manager: @Session.Name</p>
+            @* <p>Manager: @Session.Name</p> *@
+            <p>Logged in as: @Session.Name</p>
+            <p>Role: @Session.Role</p>
             <p>Department: @Session.Department</p>
             <p>Selected Team: @Department</p>
         </div>

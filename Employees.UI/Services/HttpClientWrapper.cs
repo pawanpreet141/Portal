@@ -223,32 +223,71 @@ namespace Employees.UI.Services
         //    }
         //}
 
+
+
+        // 26
+
+
         public async Task<ApiResponse?> Signup(SignupRequest request)
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync(
+                // PostAsync adds the logged-in user's JWT token.
+                var response = await PostAsync(
                     "api/Account/signup", request);
 
                 var text = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"SIGNUP STATUS: {(int)response.StatusCode}");
+                Console.WriteLine($"SIGNUP RESPONSE: {text}");
 
                 return new ApiResponse
                 {
                     Success = response.IsSuccessStatusCode,
                     Message = response.IsSuccessStatusCode
-                        ? "Account created successfully."
-                        : text
+                        ? "Employee account created successfully."
+                        : $"HTTP {(int)response.StatusCode}: {text}"
                 };
             }
-            catch (HttpRequestException)
+            catch (Exception ex)
             {
+                Console.WriteLine($"SIGNUP ERROR: {ex}");
+
                 return new ApiResponse
                 {
                     Success = false,
-                    Message = "Unable to connect to the API. Please try again."
+                    Message = $"Signup failed: {ex.Message}"
                 };
             }
         }
+
+
+        //public async Task<ApiResponse?> Signup(SignupRequest request)
+        //{
+        //    try
+        //    {
+        //        var response = await _httpClient.PostAsJsonAsync(
+        //            "api/Account/signup", request);
+
+        //        var text = await response.Content.ReadAsStringAsync();
+
+        //        return new ApiResponse
+        //        {
+        //            Success = response.IsSuccessStatusCode,
+        //            Message = response.IsSuccessStatusCode
+        //                ? "Account created successfully."
+        //                : text
+        //        };
+        //    }
+        //    catch (HttpRequestException)
+        //    {
+        //        return new ApiResponse
+        //        {
+        //            Success = false,
+        //            Message = "Unable to connect to the API. Please try again."
+        //        };
+        //    }
+        //}
 
         private void AddAuthorizationHeader(
             HttpRequestMessage request)
