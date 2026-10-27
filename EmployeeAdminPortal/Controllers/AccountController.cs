@@ -161,191 +161,6 @@ namespace Employee.API.Controllers
 
 
 
-        //[Authorize(Roles = "Manager")]
-        //[HttpPost("signup")]
-        //public async Task<IActionResult> Signup(
-        //    [FromBody] SignupRequest request)
-        //{
-        //    var managerId = GetUserId();
-
-        //    if (managerId == null)
-        //        return Unauthorized(new { message = "Manager ID not found." });
-
-        //    var manager = await _context.Users.FirstOrDefaultAsync(
-        //        x => x.Id == managerId.Value && x.Role == "Manager");
-
-        //    if (manager == null)
-        //        return Forbid();
-
-        //    var validation = await _signupValidator.ValidateAsync(request);
-
-        //    if (!validation.IsValid)
-        //    {
-        //        return BadRequest(new
-        //        {
-        //            message = validation.Errors.First().ErrorMessage
-        //        });
-        //    }
-
-        //    string[] allowedTeams;
-
-        //    if (string.Equals(
-        //        manager.Department, "HR",
-        //        StringComparison.OrdinalIgnoreCase))
-        //    {
-        //        allowedTeams = new[]
-        //        {
-        //            "Development", "Designer", "Sales", "SEO"
-        //        };
-        //    }
-        //    else if (string.Equals(
-        //        manager.Department, "Technical",
-        //        StringComparison.OrdinalIgnoreCase))
-        //    {
-        //        allowedTeams = new[]
-        //        {
-        //            "System Engineer", "DevOps"
-        //        };
-        //    }
-        //    else
-        //    {
-        //        return BadRequest(new
-        //        {
-        //            message = "Invalid manager department."
-        //        });
-        //    }
-
-        //    var selectedTeam = allowedTeams.FirstOrDefault(team =>
-        //        string.Equals(
-        //            team, request.Department?.Trim(),
-        //            StringComparison.OrdinalIgnoreCase));
-
-        //    if (selectedTeam == null)
-        //    {
-        //        return BadRequest(new
-        //        {
-        //            message = "You are not authorized to create an employee for this team."
-        //        });
-        //    }
-
-        //    var email = request.Email.Trim();
-
-        //    if (await _context.Users.AnyAsync(x => x.Email == email))
-        //    {
-        //        return BadRequest(new { message = "Email already exists." });
-        //    }
-
-        //    var user = new User
-        //    {
-        //        Name = request.Name.Trim(),
-        //        Email = email,
-        //        Role = "Employee",
-        //        Department = selectedTeam,
-        //        ManagerId = manager.Id,
-        //        AdminId = manager.AdminId
-        //    };
-
-        //    user.PasswordHash = _passwordHasher.HashPassword(
-        //        user, request.Password);
-
-        //    _context.Users.Add(user);
-        //    await _context.SaveChangesAsync();
-
-        //    _logger.LogInformation(
-        //        "Employee created: {UserId}, manager: {ManagerId}",
-        //        user.Id, manager.Id);
-
-        //    return Ok(new
-        //    {
-        //        id = user.Id,
-        //        name = user.Name,
-        //        email = user.Email,
-        //        role = user.Role,
-        //        department = user.Department,
-        //        managerId = user.ManagerId,
-        //        message = "Employee account created successfully."
-        //    });
-        //}
-
-        // ADMIN CREATES MANAGERS
-
-        //[Authorize(Roles = "Admin")]
-        //[HttpPost("create-manager")]
-        //public async Task<IActionResult> CreateManager(
-        //    [FromBody] CreateManagerRequest request)
-        //{
-        //    var adminId = GetUserId();
-
-        //    if (adminId == null)
-        //        return Unauthorized(new { message = "Admin ID not found." });
-
-        //    var admin = await _context.Users.FirstOrDefaultAsync(
-        //        x => x.Id == adminId.Value && x.Role == "Admin");
-
-        //    if (admin == null)
-        //        return Forbid();
-
-        //    if (string.IsNullOrWhiteSpace(request.Name) ||
-        //        string.IsNullOrWhiteSpace(request.Email) ||
-        //        string.IsNullOrWhiteSpace(request.Password))
-        //    {
-        //        return BadRequest(new
-        //        {
-        //            message = "Name, email and password are required."
-        //        });
-        //    }
-
-        //    var department = request.Department?.Trim();
-
-        //    if (department == null ||
-        //        !(department.Equals("HR", StringComparison.OrdinalIgnoreCase) ||
-        //          department.Equals("Technical", StringComparison.OrdinalIgnoreCase)))
-        //    {
-        //        return BadRequest(new
-        //        {
-        //            message = "Manager department must be HR or Technical."
-        //        });
-        //    }
-
-        //    if (await _context.Users.AnyAsync(
-        //        x => x.Email == request.Email.Trim()))
-        //    {
-        //        return BadRequest(new { message = "Email already exists." });
-        //    }
-
-        //    var manager = new User
-        //    {
-        //        Name = request.Name.Trim(),
-        //        Email = request.Email.Trim(),
-        //        Role = "Manager",
-        //        Department = department.Equals(
-        //            "HR", StringComparison.OrdinalIgnoreCase)
-        //            ? "HR"
-        //            : "Technical",
-        //        AdminId = admin.Id,
-        //        ManagerId = null
-        //    };
-
-        //    manager.PasswordHash = _passwordHasher.HashPassword(
-        //        manager, request.Password);
-
-        //    _context.Users.Add(manager);
-        //    await _context.SaveChangesAsync();
-
-        //    return Ok(new
-        //    {
-        //        id = manager.Id,
-        //        name = manager.Name,
-        //        email = manager.Email,
-        //        role = manager.Role,
-        //        department = manager.Department,
-        //        adminId = manager.AdminId,
-        //        message = "Manager created successfully."
-        //    });
-        //}
-
-
-
         [Authorize(Roles = "Admin")]
         [HttpPost("create-manager")]
         public async Task<IActionResult> CreateManager(
@@ -450,17 +265,7 @@ namespace Employee.API.Controllers
                 });
             }
 
-            //// A manager can create accounts only in their own department.
-            //if (!string.Equals(
-            //    manager.Department?.Trim(),
-            //    requestedDepartment,
-            //    StringComparison.OrdinalIgnoreCase))
-            //{
-            //    return BadRequest(new
-            //    {
-            //        message = "You can create accounts only for your own department."
-            //    });
-            //}
+
 
             var email = request.Email.Trim();
 
@@ -490,17 +295,6 @@ namespace Employee.API.Controllers
             };
 
 
-
-
-            //var user = new User
-            //{
-            //    Name = request.Name.Trim(),
-            //    Email = email,
-            //    Role = "Employee",
-            //    Department = department,
-            //    AdminId = manager.AdminId,
-            //    ManagerId = manager.Id
-            //};
 
             user.PasswordHash = _passwordHasher.HashPassword(
                 user, request.Password);
@@ -662,7 +456,6 @@ namespace Employee.API.Controllers
         {
             public string Name { get; set; } = string.Empty;
             public string Email { get; set; } = string.Empty;
-          //  public string Department { get; set; } = string.Empty;
             public string Password { get; set; } = string.Empty;
         }
 

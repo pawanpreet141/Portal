@@ -8,7 +8,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
+//using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
@@ -16,6 +16,20 @@ using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+////Healthcheck for MYSQL 
+//var connectionString =
+//    builder.Configuration.GetConnectionString("DefaultConnection")
+//    ?? throw new InvalidOperationException(
+//        "DefaultConnection is not configured.");
+
+//builder.Services
+//    .AddHealthChecks()
+//    .AddCheck(
+//        "mysql",
+//        new MySqlHealthCheck(connectionString));
+
 
 
 Log.Logger = new LoggerConfiguration()
@@ -175,6 +189,8 @@ var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 //app.MapHealthChecks("/healthz");
+//app.MapHealthChecks("/health");
+
 
 ////sqlite
 
@@ -183,6 +199,21 @@ app.UseSerilogRequestLogging();
 //    var dbContext = scope.ServiceProvider.GetRequiredService<EmployeeDbContext>();
 //    dbContext.Database.EnsureCreated();
 //}
+
+
+////Healthcheck for MYSQL 
+//var connectionString =
+//    builder.Configuration.GetConnectionString("DefaultConnection")
+//    ?? throw new InvalidOperationException(
+//        "DefaultConnection is not configured.");
+
+//builder.Services
+//    .AddHealthChecks()
+//    .AddCheck(
+//        "mysql",
+//        new MySqlHealthCheck(connectionString));
+
+
 
 
 if (app.Environment.IsDevelopment())

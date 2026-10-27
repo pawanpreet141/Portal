@@ -96,29 +96,6 @@ namespace Employees.UI.Components.Pages
                     ErrorMessage = $"Unexpected role: {result.Role}";
                 }
 
-
-                //if (result.Role?.Trim().Equals(
-                //    "Admin",
-                //    StringComparison.OrdinalIgnoreCase) == true)
-                //{
-                //    Navigation.NavigateTo("/create-manager");
-                //}
-                //else if (result.Role?.Trim().Equals(
-                //    "Manager",
-                //    StringComparison.OrdinalIgnoreCase) == true)
-                //{
-                //    Navigation.NavigateTo("/manager-dashboard");
-                //}
-                //else if (result.Role?.Trim().Equals(
-                //    "Employee",
-                //    StringComparison.OrdinalIgnoreCase) == true)
-                //{
-                //    Navigation.NavigateTo("/employee-dashboard");
-                //}
-                //else
-                //{
-                //    ErrorMessage = $"Unexpected role: {result.Role}";
-                //}
             }
             catch (Exception ex)
             {

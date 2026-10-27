@@ -195,37 +195,7 @@ namespace Employees.UI.Services
             }
         }
 
-        //public async Task<ApiResponse?> Signup(
-        //    SignupRequest request)
-        //{
-        //    try
-        //    {
-        //        var response = await _httpClient.PostAsJsonAsync(
-        //            "api/Account/signup", request);
 
-        //        var text = await response.Content.ReadAsStringAsync();
-
-        //        return new ApiResponse
-        //        {
-        //            Success = response.IsSuccessStatusCode,
-        //            Message = response.IsSuccessStatusCode
-        //                ? "Account created successfully."
-        //                : text
-        //        };
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return new ApiResponse
-        //        {
-        //            Success = false,
-        //            Message = ex.Message
-        //        };
-        //    }
-        //}
-
-
-
-        // 26
 
 
         public async Task<ApiResponse?> Signup(SignupRequest request)
@@ -262,32 +232,6 @@ namespace Employees.UI.Services
         }
 
 
-        //public async Task<ApiResponse?> Signup(SignupRequest request)
-        //{
-        //    try
-        //    {
-        //        var response = await _httpClient.PostAsJsonAsync(
-        //            "api/Account/signup", request);
-
-        //        var text = await response.Content.ReadAsStringAsync();
-
-        //        return new ApiResponse
-        //        {
-        //            Success = response.IsSuccessStatusCode,
-        //            Message = response.IsSuccessStatusCode
-        //                ? "Account created successfully."
-        //                : text
-        //        };
-        //    }
-        //    catch (HttpRequestException)
-        //    {
-        //        return new ApiResponse
-        //        {
-        //            Success = false,
-        //            Message = "Unable to connect to the API. Please try again."
-        //        };
-        //    }
-        //}
 
         private void AddAuthorizationHeader(
             HttpRequestMessage request)

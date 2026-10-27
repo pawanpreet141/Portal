@@ -29,15 +29,7 @@
                 <label>Password</label>
                 <input class="form-control" type="password" @bind="Password" />
             </div>
-@* 
-            <div class="mb-3">
-                <label>Manager Department</label>
-                <select class="form-select" @bind="Department">
-                    <option value="">Select department</option>
-                    <option value="HR">HR</option>
-                    <option value="Technical">Technical</option> 
-                </select>
-            </div> *@
+
 
             @if (!string.IsNullOrWhiteSpace(Message))
             {
@@ -64,7 +56,6 @@
     private string Name = string.Empty;
     private string Email = string.Empty;
     private string Password = string.Empty;
-    //private string Department = string.Empty;
     private string Message = string.Empty;
     private bool IsSuccess;
     private bool IsBusy;
@@ -103,7 +94,6 @@
         if (string.IsNullOrWhiteSpace(Name) ||
             string.IsNullOrWhiteSpace(Email) ||
             string.IsNullOrWhiteSpace(Password))
-           // string.IsNullOrWhiteSpace(Department))
         {
             Message = "All fields are required.";
             return;
@@ -119,7 +109,6 @@
                     Name = Name,
                     Email = Email,
                     Password = Password,
-                  //  Department = Department
                 });
 
             IsSuccess = result.Success;
