@@ -266,10 +266,10 @@ namespace Employee.API.Controllers
             return null;
         }
 
-        [HttpGet("test-exception")]
-        public IActionResult TestException()
-        {
-            throw new Exception("Test exception");
-        }
+        //[HttpGet("test-exception")]
+        //public IActionResult TestException()
+        //{
+        //    throw new Exception("Test exception");
+        //}
     }
 }
