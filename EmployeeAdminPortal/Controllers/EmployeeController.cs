@@ -10,7 +10,7 @@ namespace Employee.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Manager")]
+    [Authorize(Roles = "HR,Technical")]
     public class EmployeesController : ControllerBase
     {
         private readonly IEmployeeService _employeeService;
@@ -27,79 +27,55 @@ namespace Employee.API.Controllers
             _logger = logger;
         }
 
-
+        // GET: api/Employees
+        // Show only employees created by logged-in user
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Employee1>>> GetEmployees()
         {
-            var managerId = GetUserId();
+            var userId = GetUserId();
 
-            if (managerId == null)
-            {
+            if (userId == null)
                 return Unauthorized("User ID not found.");
-            }
-
-            _logger.LogInformation(
-                "Getting employees for ManagerId {ManagerId}",
-                managerId.Value);
 
             var employees = await _employeeService
-                .GetAllAsync(managerId.Value);
+                .GetAllAsync(userId.Value);
 
             return Ok(employees);
         }
 
-
-
-
+        // GET: api/Employees/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Employee1>> GetEmployee(int id)
         {
-            var managerId = GetUserId();
+            var userId = GetUserId();
 
-            if (managerId == null)
-            {
+            if (userId == null)
                 return Unauthorized("User ID not found.");
-            }
-
-            _logger.LogInformation(
-                "Getting EmployeeId {EmployeeId} for ManagerId {ManagerId}",
-                id,
-                managerId.Value);
 
             var employee = await _employeeService
-                .GetByIdAsync(id, managerId.Value);
+                .GetByIdAsync(id, userId.Value);
 
             if (employee == null)
             {
                 return NotFound(
-                    "Employee not found or you do not have access to this employee.");
+                    "Employee not found or you do not have access.");
             }
 
             return Ok(employee);
         }
 
-
-
-
+        // POST: api/Employees
         [HttpPost]
         public async Task<ActionResult<Employee1>> CreateEmployee(
             [FromBody] CreateEmployeeRequest request)
         {
-            var managerId = GetUserId();
+            var userId = GetUserId();
 
-            if (managerId == null)
-            {
+            if (userId == null)
                 return Unauthorized("User ID not found.");
-            }
-
-            _logger.LogInformation(
-                "Creating employee for ManagerId {ManagerId}",
-                managerId.Value);
-
 
             var employee = new Employee1
             {
-                Id = 0,
                 Name = request.Name,
                 Email = request.Email,
                 Age = request.Age,
@@ -107,169 +83,108 @@ namespace Employee.API.Controllers
                 Team = request.Team
             };
 
-
             var validationResult =
                 await _validator.ValidateAsync(employee);
 
             if (!validationResult.IsValid)
-            {
                 return BadRequest(validationResult.Errors);
-            }
 
             try
             {
-                // ManagerId comes from JWT.
+                // Service assigns UserId from authenticated identity.
                 var result = await _employeeService
-                    .AddAsync(employee, managerId.Value);
+                    .AddAsync(employee, userId.Value);
 
                 return CreatedAtAction(
                     nameof(GetEmployee),
-                    new
-                    {
-                        id = result.Id
-                    },
+                    new { id = result.Id },
                     result);
             }
             catch (UnauthorizedAccessException)
             {
-                _logger.LogWarning(
-                    "Unauthorized employee creation attempt by UserId {UserId}",
-                    managerId.Value);
-
                 return Forbid();
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
+                return BadRequest(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
+                return BadRequest(new { message = ex.Message });
             }
         }
 
-
+        // PUT: api/Employees/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEmployee(
             int id,
             [FromBody] Employee1 employee)
         {
-            var managerId = GetUserId();
+            var userId = GetUserId();
 
-            if (managerId == null)
-            {
+            if (userId == null)
                 return Unauthorized("User ID not found.");
-            }
-
-            _logger.LogInformation(
-                "Updating EmployeeId {EmployeeId} for ManagerId {ManagerId}",
-                id,
-                managerId.Value);
 
             if (id != employee.Id)
-            {
                 return BadRequest("Employee ID does not match.");
-            }
 
             var validationResult =
                 await _validator.ValidateAsync(employee);
 
             if (!validationResult.IsValid)
-            {
                 return BadRequest(validationResult.Errors);
-            }
 
             try
             {
                 var result = await _employeeService
-                    .UpdateAsync(employee, managerId.Value);
+                    .UpdateAsync(employee, userId.Value);
 
                 if (result == null)
                 {
                     return NotFound(
-                        "Employee not found or you do not have access to this employee.");
+                        "Employee not found or you do not have access.");
                 }
 
                 return NoContent();
             }
-            catch (UnauthorizedAccessException)
-            {
-                return Forbid();
-            }
             catch (ArgumentException ex)
             {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
+                return BadRequest(new { message = ex.Message });
             }
         }
 
-
+        // DELETE: api/Employees/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
-            var managerId = GetUserId();
+            var userId = GetUserId();
 
-            if (managerId == null)
-            {
+            if (userId == null)
                 return Unauthorized("User ID not found.");
-            }
-
-            _logger.LogInformation(
-                "Deleting EmployeeId {EmployeeId} for ManagerId {ManagerId}",
-                id,
-                managerId.Value);
 
             var result = await _employeeService
-                .DeleteAsync(id, managerId.Value);
+                .DeleteAsync(id, userId.Value);
 
             if (!result)
             {
                 return NotFound(
-                    "Employee not found or you do not have access to this employee.");
+                    "Employee not found or you do not have access.");
             }
 
             return NoContent();
         }
 
-
+        // Get authenticated user's ID from JWT
         private int? GetUserId()
         {
             var userIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrWhiteSpace(userIdClaim))
-            {
-                userIdClaim =
-                    User.FindFirst("sub")?.Value;
-            }
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("sub")?.Value;
 
             if (int.TryParse(userIdClaim, out int userId))
-            {
                 return userId;
-            }
 
             return null;
         }
-
-        //[HttpGet("test-exception")]
-        //public IActionResult TestException()
-        //{
-        //    throw new Exception("Test exception");
-        //}
     }
 }

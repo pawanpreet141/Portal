@@ -1,25 +1,91 @@
 ﻿@page "/employee-dashboard"
 @rendermode InteractiveServer
+
 @using Employees.UI.Services
+
 @inject UserSession UserSession
+@inject NavigationManager Navigation
 
 <PageTitle>Employee Dashboard</PageTitle>
 
 <div class="container mt-5">
-    <div class="card shadow">
-        <div class="card-header">
-            <h3>Employee Dashboard</h3>
+
+    @if (!UserSession.IsLoggedIn)
+    {
+        <div class="alert alert-warning">
+            Please login first.
         </div>
+    }
+    else if (UserSession.Role != "Employee")
+    {
+        <div class="alert alert-danger">
+            You are not authorized to access this dashboard.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow">
 
-        <div class="card-body">
-            <h4>Welcome, @UserSession.Name!</h4>
-
-            <div class="alert alert-success mt-3">
-                Login successful.
+            <div class="card-header bg-primary text-white">
+                <h3>Employee Dashboard</h3>
             </div>
 
-            <p><strong>Email:</strong> @UserSession.Email</p>
-            <p><strong>Role:</strong> @UserSession.Role</p>
+            <div class="card-body">
+
+                <h4>Welcome, @UserSession.Name!</h4>
+
+                <div class="alert alert-success mt-3">
+                    Login successful.
+                </div>
+
+                <hr />
+
+                <h5>My Profile</h5>
+
+                <p>
+                    <strong>Name:</strong>
+                    @UserSession.Name
+                </p>
+
+                <p>
+                    <strong>Email:</strong>
+                    @UserSession.Email
+                </p>
+
+                <p>
+                    <strong>Role:</strong>
+                    @UserSession.Role
+                </p>
+
+                <p>
+                    <strong>Department:</strong>
+                    @UserSession.Department
+                </p>
+
+                <button class="btn btn-danger mt-3"
+                        @onclick="Logout">
+                    Logout
+                </button>
+
+            </div>
         </div>
-    </div>
+    }
+
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!UserSession.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private void Logout()
+    {
+        UserSession.Logout();
+
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

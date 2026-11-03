@@ -17,174 +17,119 @@ public class EmployeeService : IEmployeeService
         _context = context;
     }
 
-
-
-    public async Task<List<Employee1>> GetAllAsync(
-        int managerId)
+    // Get employees created by logged-in HR or Technical
+    public async Task<List<Employee1>> GetAllAsync(int userId)
     {
-        var manager = await GetManagerAsync(managerId);
+        var creator = await GetCreatorAsync(userId);
 
-        if (manager == null)
-        {
+        if (creator == null)
             return new List<Employee1>();
-        }
 
-        return await _employeeRepository
-            .GetAllAsync(managerId);
+        return await _employeeRepository.GetAllAsync(userId);
     }
 
-
-
-
+    // Get employee by ID belonging to logged-in user
     public async Task<Employee1?> GetByIdAsync(
         int id,
-        int managerId)
+        int userId)
     {
-        var manager = await GetManagerAsync(managerId);
+        var creator = await GetCreatorAsync(userId);
 
-        if (manager == null)
-        {
+        if (creator == null)
             return null;
-        }
 
-
-        return await _employeeRepository
-            .GetByIdAsync(id, managerId);
+        return await _employeeRepository.GetByIdAsync(id, userId);
     }
 
-
-
-
+    // Create employee
     public async Task<Employee1> AddAsync(
         Employee1 employee,
-        int managerId)
+        int userId)
     {
+        var creator = await GetCreatorAsync(userId);
 
-        var manager = await GetManagerAsync(managerId);
-
-        if (manager == null)
+        if (creator == null)
         {
             throw new UnauthorizedAccessException(
-                "Only a Manager can create an employee.");
+                "Only HR and Technical users can create employees.");
         }
 
-
-
-        if (string.IsNullOrWhiteSpace(manager.Department))
-        {
-            throw new InvalidOperationException(
-                "Manager department is not configured.");
-        }
-
-
-
-        if (!IsTeamAllowed(
-                manager.Department,
-                employee.Team))
+        if (!IsTeamAllowed(creator.Role, employee.Team))
         {
             throw new ArgumentException(
-                GetTeamErrorMessage(
-                    manager.Department));
+                GetTeamErrorMessage(creator.Role));
         }
 
 
 
         employee.Id = 0;
 
+        // Save logged-in HR or Technical user ID
+        employee.UserId = creator.Id;
 
-        employee.ManagerId = manager.Id;
+        employee.ManagerId = creator.ManagerId;
 
-        employee.Department = manager.Department;
+        employee.Department = employee.Team;
 
+        // Save employee creation date and time
+        // employee.CreatedAt = DateTime.UtcNow;
 
+        employee.CreatedAt = DateTime.UtcNow.AddHours(5).AddMinutes(30);
 
-        return await _employeeRepository
-            .AddAsync(employee);
+        return await _employeeRepository.AddAsync(employee);
     }
 
-
-
-
+    // Update only employees created by logged-in user
     public async Task<Employee1?> UpdateAsync(
         Employee1 employee,
-        int managerId)
+        int userId)
     {
+        var creator = await GetCreatorAsync(userId);
 
-        var manager = await GetManagerAsync(managerId);
-
-        if (manager == null)
-        {
+        if (creator == null)
             return null;
-        }
 
-
-
-        if (!IsTeamAllowed(
-                manager.Department,
-                employee.Team))
+        if (!IsTeamAllowed(creator.Role, employee.Team))
         {
             throw new ArgumentException(
-                GetTeamErrorMessage(
-                    manager.Department));
+                GetTeamErrorMessage(creator.Role));
         }
 
+        employee.Department = employee.Team;
 
-
-        employee.ManagerId = manager.Id;
-
-
-
-        employee.Department = manager.Department;
-
-
-        return await _employeeRepository
-            .UpdateAsync(
-                employee,
-                managerId);
+        return await _employeeRepository.UpdateAsync(
+            employee,
+            userId);
     }
 
-
-
-
+    // Delete only employees created by logged-in user
     public async Task<bool> DeleteAsync(
         int id,
-        int managerId)
+        int userId)
     {
-        var manager = await GetManagerAsync(managerId);
+        var creator = await GetCreatorAsync(userId);
 
-        if (manager == null)
-        {
+        if (creator == null)
             return false;
-        }
 
-
-        return await _employeeRepository
-            .DeleteAsync(
-                id,
-                managerId);
+        return await _employeeRepository.DeleteAsync(
+            id,
+            userId);
     }
 
-
-
-    private async Task<User?> GetManagerAsync(
-        int managerId)
+    // Find logged-in HR or Technical user
+    private async Task<User?> GetCreatorAsync(int userId)
     {
-        return await _context.Users
-            .FirstOrDefaultAsync(x =>
-                x.Id == managerId &&
-                x.Role == "Manager");
+        return await _context.Users.FirstOrDefaultAsync(x =>
+            x.Id == userId &&
+            (x.Role == "HR" || x.Role == "Technical"));
     }
 
-
-
-    private bool IsTeamAllowed(
-        string department,
-        string team)
+    // Department validation
+    private bool IsTeamAllowed(string role, string team)
     {
         if (string.Equals(
-                department,
-                "HR",
-                StringComparison.OrdinalIgnoreCase))
+            role, "HR", StringComparison.OrdinalIgnoreCase))
         {
             string[] allowedTeams =
             {
@@ -195,58 +140,39 @@ public class EmployeeService : IEmployeeService
             };
 
             return allowedTeams.Contains(
-                team,
-                StringComparer.OrdinalIgnoreCase);
+                team, StringComparer.OrdinalIgnoreCase);
         }
 
-
         if (string.Equals(
-                department,
-                "Technical",
-                StringComparison.OrdinalIgnoreCase))
+            role, "Technical", StringComparison.OrdinalIgnoreCase))
         {
             string[] allowedTeams =
             {
-                "System Engineer",
-                "DevOps"
+                "DevOps",
+                "System Engineer"
             };
 
             return allowedTeams.Contains(
-                team,
-                StringComparer.OrdinalIgnoreCase);
+                team, StringComparer.OrdinalIgnoreCase);
         }
-
 
         return false;
     }
 
-
-    private string GetTeamErrorMessage(
-        string department)
+    private string GetTeamErrorMessage(string role)
     {
         if (string.Equals(
-                department,
-                "HR",
-                StringComparison.OrdinalIgnoreCase))
+            role, "HR", StringComparison.OrdinalIgnoreCase))
         {
-            return
-                "HR manager can only use Designer, Development, Sales, or SEO.";
+            return "HR can create Designer, Development, Sales, or SEO employees.";
         }
-
 
         if (string.Equals(
-                department,
-                "Technical",
-                StringComparison.OrdinalIgnoreCase))
+            role, "Technical", StringComparison.OrdinalIgnoreCase))
         {
-            return
-                "Technical manager can only use System Engineer or DevOps.";
+            return "Technical can create DevOps or System Engineer employees.";
         }
 
-
-        return
-            "Manager department must be HR or Technical.";
+        return "Invalid user role.";
     }
 }
-
-

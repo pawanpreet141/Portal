@@ -24,11 +24,19 @@ var connectionString =
     ?? throw new InvalidOperationException(
         "DefaultConnection is not configured.");
 
+//builder.Services
+//    .AddHealthChecks()
+//    .AddCheck(
+//        "mysql",
+//        new MySqlHealthCheck(connectionString));
+
 builder.Services
     .AddHealthChecks()
     .AddCheck(
         "mysql",
-        new MySqlHealthCheck(connectionString));
+        new MySqlHealthCheck(connectionString),
+        failureStatus: HealthStatus.Unhealthy,
+        tags: new[] { "ready" });
 
 
 
@@ -188,9 +196,21 @@ var app = builder.Build();
 
 
 app.UseSerilogRequestLogging();
-//app.MapHealthChecks("/healthz");
-app.MapHealthChecks("/health");
 
+//app.MapHealthChecks("/health");
+
+// Check whether API is running
+app.MapHealthChecks("/health/live", new()
+{
+    Predicate = _ => false
+});
+
+// Check whether MySQL is working
+app.MapHealthChecks("/health/ready", new()
+{
+    Predicate = check =>
+        check.Tags.Contains("ready")
+});
 
 ////sqlite
 

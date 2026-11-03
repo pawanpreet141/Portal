@@ -40,9 +40,6 @@ namespace Employee.API.Controllers
 
         //HR and Technical  CREATES EMPLOYEE ACCOUNTS
 
-
-
-
         [Authorize(Roles = "HR,Technical")]
         [HttpPost("signup")]
         public async Task<IActionResult> Signup(
@@ -53,37 +50,34 @@ namespace Employee.API.Controllers
             if (userId == null)
                 return Unauthorized(new { message = "User ID not found." });
 
-            // Find the logged-in HR or Technical user.
             var creator = await _context.Users.FirstOrDefaultAsync(
                 x => x.Id == userId.Value);
 
             if (creator == null)
                 return Unauthorized(new { message = "User not found." });
 
-            string[] allowedTeams;
+            string[] allowedDepartments;
 
             if (string.Equals(
                 creator.Role, "HR",
-                StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(
-                creator.Department, "HR",
                 StringComparison.OrdinalIgnoreCase))
             {
-                allowedTeams = new[]
+                allowedDepartments = new[]
                 {
-            "Development", "Designer", "Sales", "SEO"
+            "Developer",
+            "Development",
+            "Sales",
+            "SEO"
         };
             }
             else if (string.Equals(
                 creator.Role, "Technical",
-                StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(
-                creator.Department, "Technical",
                 StringComparison.OrdinalIgnoreCase))
             {
-                allowedTeams = new[]
+                allowedDepartments = new[]
                 {
-            "System Engineer", "DevOps"
+            "DevOps",
+            "System Engineer"
         };
             }
             else
@@ -101,17 +95,17 @@ namespace Employee.API.Controllers
                 });
             }
 
-            var selectedTeam = allowedTeams.FirstOrDefault(team =>
-                string.Equals(
-                    team,
+            var selectedDepartment = allowedDepartments.FirstOrDefault(
+                x => string.Equals(
+                    x,
                     request.Department?.Trim(),
                     StringComparison.OrdinalIgnoreCase));
 
-            if (selectedTeam == null)
+            if (selectedDepartment == null)
             {
                 return BadRequest(new
                 {
-                    message = "You are not authorized to create an employee for this team."
+                    message = "Invalid department for your role."
                 });
             }
 
@@ -125,39 +119,75 @@ namespace Employee.API.Controllers
                 });
             }
 
-            var employee = new User
+            await using var transaction =
+                await _context.Database.BeginTransactionAsync();
+
+            try
             {
-                Name = request.Name.Trim(),
-                Email = email,
-                Role = "Employee",
-                Department = selectedTeam,
+                // Create employee login account
+                var employeeUser = new User
+                {
+                    Name = request.Name.Trim(),
+                    Email = email,
+                    Role = "Employee",
+                    Department = selectedDepartment,
 
-                // Preserve the original Manager and Admin relationships.
-                ManagerId = creator.ManagerId ?? creator.Id,
-                AdminId = creator.AdminId
-            };
+                    AdminId = creator.AdminId,
+                    ManagerId = creator.ManagerId
+                };
 
-            employee.PasswordHash = _passwordHasher.HashPassword(
-                employee, request.Password);
+                employeeUser.PasswordHash =
+                    _passwordHasher.HashPassword(
+                        employeeUser,
+                        request.Password);
 
-            _context.Users.Add(employee);
-            await _context.SaveChangesAsync();
+                _context.Users.Add(employeeUser);
 
-            _logger.LogInformation(
-                "Employee created: {UserId}, by {CreatorId}",
-                employee.Id, creator.Id);
+                await _context.SaveChangesAsync();
 
-            return Ok(new
+                // Create employee profile
+                var employeeProfile = new Employee1
+                {
+                    Name = employeeUser.Name,
+                    Email = employeeUser.Email,
+                    Department = selectedDepartment,
+                    Team = selectedDepartment,
+
+                    // ID of HR or Technical who created employee
+                    UserId = creator.Id,
+
+                    // Preserve manager relationship
+                    ManagerId = employeeUser.ManagerId
+                };
+
+                _context.Employees.Add(employeeProfile);
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                _logger.LogInformation(
+                    "Employee {EmployeeId} created by user {CreatorId}",
+                    employeeProfile.Id,
+                    creator.Id);
+
+                return Ok(new
+                {
+                    id = employeeProfile.Id,
+                    userId = employeeUser.Id,
+                    name = employeeProfile.Name,
+                    email = employeeProfile.Email,
+                    department = employeeProfile.Department,
+                    message = "Employee created successfully."
+                });
+            }
+            catch
             {
-                id = employee.Id,
-                name = employee.Name,
-                email = employee.Email,
-                role = employee.Role,
-                department = employee.Department,
-                managerId = employee.ManagerId,
-                message = "Employee account created successfully."
-            });
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
+
 
 
 
