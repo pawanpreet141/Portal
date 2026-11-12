@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+﻿using Employees.UI.Models;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -41,6 +42,14 @@ namespace Employees.UI.Services
 
             return await response.Content.ReadFromJsonAsync<T>();
         }
+
+        // 12/11
+        public async Task<ManagerDashboardModel?> GetManagerDashboard()
+        {
+            return await GetAsync<ManagerDashboardModel>(
+                "api/Account/manager-dashboard");
+        }
+        //12/11
 
         public async Task<HttpResponseMessage> PutAsync<T>(
             string url, T data)

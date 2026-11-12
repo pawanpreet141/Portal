@@ -25,6 +25,7 @@
     }
 
     <div class="mb-3">
+
         <button class="btn btn-primary"
                 @onclick="ShowAddForm">
             Add Employee
@@ -34,10 +35,14 @@
                 @onclick="Logout">
             Logout
         </button>
+
     </div>
+
 
     @if (showForm)
     {
+        <!-- SHOW ONLY FORM -->
+
         <div class="card mb-4">
 
             <div class="card-header">
@@ -55,42 +60,34 @@
                     <ValidationSummary />
 
                     <div class="mb-3">
-                        <label class="form-label">Name</label>
-
+                        <label>Name</label>
                         <InputText class="form-control"
                                    @bind-Value="employee.Name" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Email</label>
-
+                        <label>Email</label>
                         <InputText type="email"
                                    class="form-control"
                                    @bind-Value="employee.Email" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Department</label>
+                        <label>Department</label>
 
                         <InputSelect class="form-select"
                                      @bind-Value="employee.Team">
 
                             <option value="">Select Department</option>
 
-                            @if (string.Equals(
-                                UserSession.Role,
-                                "HR",
-                                StringComparison.OrdinalIgnoreCase))
+                            @if (UserSession.Role == "HR")
                             {
                                 <option value="Designer">Designer</option>
                                 <option value="Development">Development</option>
                                 <option value="Sales">Sales</option>
                                 <option value="SEO">SEO</option>
                             }
-                            else if (string.Equals(
-                                UserSession.Role,
-                                "Technical",
-                                StringComparison.OrdinalIgnoreCase))
+                            else if (UserSession.Role == "Technical")
                             {
                                 <option value="DevOps">DevOps</option>
                                 <option value="System Engineer">System Engineer</option>
@@ -100,27 +97,35 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Age</label>
-
+                        <label>Age</label>
                         <InputNumber class="form-control"
                                      @bind-Value="employee.Age" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Salary</label>
-
+                        <label>Salary</label>
                         <InputNumber class="form-control"
                                      @bind-Value="employee.Salary" />
                     </div>
 
+                    @if (editingId == 0)
+                    {
+                        <div class="mb-3">
+                            <label>Password</label>
+                            <InputText type="password"
+                                       class="form-control"
+                                       @bind-Value="employeePassword" />
+                        </div>
+                    }
+
                     <button type="submit"
-                            class="btn btn-success me-2"
+                            class="btn btn-success"
                             disabled="@IsBusy">
                         @(IsBusy ? "Saving..." : "Save")
                     </button>
 
                     <button type="button"
-                            class="btn btn-secondary"
+                            class="btn btn-secondary ms-2"
                             @onclick="Cancel"
                             disabled="@IsBusy">
                         Cancel
@@ -131,66 +136,62 @@
             </div>
         </div>
     }
-
-    @if (employees == null)
-    {
-        <p><em>Loading employees...</em></p>
-    }
-    else if (!employees.Any())
-    {
-        <div class="alert alert-info">
-            No employees created by you yet.
-        </div>
-    }
     else
     {
-        <div class="table-responsive">
+        <!-- SHOW ONLY EMPLOYEE LIST -->
 
-            <table class="table table-bordered table-striped">
+        @if (employees == null)
+        {
+            <p>Loading employees...</p>
+        }
+        else if (!employees.Any())
+        {
+            <div class="alert alert-info">
+                No employees created by you yet.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
 
-                <thead class="table-dark">
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Department</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
+                <table class="table table-bordered table-striped">
 
-                <tbody>
-
-                    @foreach (var item in employees)
-                    {
-                        <tr @key="item.Id">
-
-                            <td>@item.Name</td>
-
-                            <td>@item.Email</td>
-
-                            <td>@item.Department</td>
-
-                            <td>
-                                <button class="btn btn-sm btn-warning me-2"
-                                        @onclick="() => EditEmployee(item)"
-                                        disabled="@IsBusy">
-                                    Edit
-                                </button>
-
-                                <button class="btn btn-sm btn-danger"
-                                        @onclick="() => DeleteEmployee(item.Id)"
-                                        disabled="@IsBusy">
-                                    Delete
-                                </button>
-                            </td>
-
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Department</th>
+                            <th>Actions</th>
                         </tr>
-                    }
+                    </thead>
 
-                </tbody>
+                    <tbody>
+                        @foreach (var item in employees)
+                        {
+                            <tr @key="item.Id">
+                                <td>@item.Name</td>
+                                <td>@item.Email</td>
+                                <td>@item.Department</td>
 
-            </table>
+                                <td>
+                                    <button class="btn btn-sm btn-warning me-2"
+                                            @onclick="() => EditEmployee(item)">
+                                        Edit
+                                    </button>
 
-        </div>
+                                    <button class="btn btn-sm btn-danger"
+                                            @onclick="() => DeleteEmployee(item.Id)">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+
+            </div>
+        }
     }
 
 </div>

@@ -453,6 +453,60 @@ namespace Employee.API.Controllers
         }
 
 
+        // 12/11/26
+
+
+        // MANAGER DASHBOARD - GET HR AND TECHNICAL USERS
+
+        [Authorize(Roles = "Manager")]
+        [HttpGet("manager-dashboard")]
+        public async Task<IActionResult> GetManagerDashboard()
+        {
+            // Get logged-in manager ID from JWT token
+            var managerId = GetUserId();
+
+            if (managerId == null)
+                return Unauthorized(new
+                {
+                    message = "Manager ID not found."
+                });
+
+            // Get HR and Technical users created by this manager
+            var users = await _context.Users
+                .Where(x =>
+                    x.ManagerId == managerId.Value &&
+                    (x.Role == "HR" || x.Role == "Technical"))
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Name,
+                    x.Email,
+                    x.Role
+                })
+                .ToListAsync();
+
+            // Separate HR and Technical users
+            var hrUsers = users
+                .Where(x => x.Role == "HR")
+                .ToList();
+
+            var technicalUsers = users
+                .Where(x => x.Role == "Technical")
+                .ToList();
+
+            // Return dashboard information
+            return Ok(new
+            {
+                TotalHR = hrUsers.Count,
+                TotalTechnical = technicalUsers.Count,
+                TotalCreated = users.Count,
+
+                HRUsers = hrUsers,
+                TechnicalUsers = technicalUsers
+            });
+        }
+
+
         // 6. GET LOGGED-IN USER ID
 
         private int? GetUserId()

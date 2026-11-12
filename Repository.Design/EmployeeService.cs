@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Employee.Data.Data;
 using Employee.Data.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace Employee.BusinessLogic;
 
@@ -41,10 +42,12 @@ public class EmployeeService : IEmployeeService
         return await _employeeRepository.GetByIdAsync(id, userId);
     }
 
-    // Create employee
+
+
     public async Task<Employee1> AddAsync(
         Employee1 employee,
-        int userId)
+        int userId,
+        string password)
     {
         var creator = await GetCreatorAsync(userId);
 
@@ -60,24 +63,84 @@ public class EmployeeService : IEmployeeService
                 GetTeamErrorMessage(creator.Role));
         }
 
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            throw new ArgumentException(
+                "Employee password is required.");
+        }
 
+        var email = employee.Email.Trim();
 
-        employee.Id = 0;
+        if (await _context.Users.AnyAsync(x => x.Email == email))
+        {
+            throw new InvalidOperationException(
+                "Email already exists.");
+        }
 
-        // Save logged-in HR or Technical user ID
-        employee.UserId = creator.Id;
+        await using var transaction =
+            await _context.Database.BeginTransactionAsync();
 
-        employee.ManagerId = creator.ManagerId;
+        try
+        {
+            // 1. Create employee login account
 
-        employee.Department = employee.Team;
+            var employeeUser = new User
+            {
+                Name = employee.Name.Trim(),
+                Email = email,
+                Role = "Employee",
+                Department = employee.Team,
+                AdminId = creator.AdminId,
+                ManagerId = creator.ManagerId
+            };
 
-        // Save employee creation date and time
-        // employee.CreatedAt = DateTime.UtcNow;
+            var passwordHasher =
+                new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
 
-        employee.CreatedAt = DateTime.UtcNow.AddHours(5).AddMinutes(30);
+            employeeUser.PasswordHash =
+                passwordHasher.HashPassword(
+                    employeeUser,
+                    password);
 
-        return await _employeeRepository.AddAsync(employee);
+            _context.Users.Add(employeeUser);
+
+            await _context.SaveChangesAsync();
+
+            // 2. Create employee profile
+
+            employee.Id = 0;
+            employee.Name = employeeUser.Name;
+            employee.Email = employeeUser.Email;
+            employee.Department = employee.Team;
+            employee.UserId = creator.Id;
+            employee.ManagerId = creator.ManagerId;
+
+            employee.CreatedAt =
+                DateTime.UtcNow.AddHours(5).AddMinutes(30);
+
+            _context.Employees.Add(employee);
+
+            await _context.SaveChangesAsync();
+
+            // 3. Commit both records
+
+            await transaction.CommitAsync();
+
+            return employee;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
+
+    //12/11
+
+
+
+
+
 
     // Update only employees created by logged-in user
     public async Task<Employee1?> UpdateAsync(

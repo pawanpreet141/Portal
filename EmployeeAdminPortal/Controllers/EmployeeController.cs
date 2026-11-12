@@ -65,6 +65,7 @@ namespace Employee.API.Controllers
         }
 
         // POST: api/Employees
+       
         [HttpPost]
         public async Task<ActionResult<Employee1>> CreateEmployee(
             [FromBody] CreateEmployeeRequest request)
@@ -73,6 +74,14 @@ namespace Employee.API.Controllers
 
             if (userId == null)
                 return Unauthorized("User ID not found.");
+
+            if (string.IsNullOrWhiteSpace(request.Password))
+            {
+                return BadRequest(new
+                {
+                    message = "Employee password is required."
+                });
+            }
 
             var employee = new Employee1
             {
@@ -91,9 +100,10 @@ namespace Employee.API.Controllers
 
             try
             {
-                // Service assigns UserId from authenticated identity.
-                var result = await _employeeService
-                    .AddAsync(employee, userId.Value);
+                var result = await _employeeService.AddAsync(
+                    employee,
+                    userId.Value,
+                    request.Password);
 
                 return CreatedAtAction(
                     nameof(GetEmployee),
@@ -113,6 +123,7 @@ namespace Employee.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
 
         // PUT: api/Employees/5
         [HttpPut("{id}")]

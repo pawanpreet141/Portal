@@ -79,12 +79,14 @@ namespace Employees.UI.Components.Pages
                 else if (string.Equals(role, "HR",
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    Navigation.NavigateTo("/signup");
+                    //Navigation.NavigateTo("/signup");
+                    Navigation.NavigateTo("/employees");
                 }
                 else if (string.Equals(role, "Technical",
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    Navigation.NavigateTo("/signup");
+                    //Navigation.NavigateTo("/signup");
+                    Navigation.NavigateTo("/employees");
                 }
                 else if (string.Equals(role, "Employee",
                     StringComparison.OrdinalIgnoreCase))

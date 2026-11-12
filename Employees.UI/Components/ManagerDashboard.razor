@@ -1,4 +1,4 @@
-﻿@page "/manager-dashboard"
+﻿@* @page "/manager-dashboard"
 @rendermode InteractiveServer
 @using Employees.UI.Services
 @inject UserSession Session
@@ -75,3 +75,311 @@
 }
 
 
+
+ *@
+
+
+ 
+
+
+
+@page "/manager-dashboard"
+@layout Employees.UI.Components.Layout.Layout
+@rendermode InteractiveServer
+
+@using Employees.UI.Services
+@using Employees.UI.Models
+
+@inject UserSession Session
+@inject NavigationManager Navigation
+@inject HttpClientWrapper Http
+
+<PageTitle>Manager Dashboard</PageTitle>
+
+<div class="container mt-4">
+
+    <h2>Manager Dashboard</h2>
+    <p>Welcome, @Session.Name</p>
+
+    <!-- Create HR and Technical -->
+
+    <div class="row g-3 mt-3">
+
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4>HR</h4>
+                    <p>Create an HR account.</p>
+
+                    <button class="btn btn-primary w-100"
+                            @onclick="CreateHR">
+                        Create HR
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4>Technical</h4>
+                    <p>Create a Technical account.</p>
+
+                    <button class="btn btn-success w-100"
+                            @onclick="CreateTechnical">
+                        Create Technical
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center mt-4">
+            <div class="spinner-border text-primary"></div>
+            <p>Loading dashboard...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger mt-4">
+            @ErrorMessage
+        </div>
+    }
+    else if (Dashboard != null)
+    {
+        <!-- Dashboard Statistics -->
+
+        <h4 class="mt-4">Dashboard Statistics</h4>
+
+        <div class="row g-3 mt-2">
+
+            <div class="col-md-4">
+                <div class="card shadow border-primary">
+                    <div class="card-body">
+                        <h5>Total HR Created</h5>
+                        <h2 class="text-primary">
+                            @Dashboard.TotalHR
+                        </h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow border-success">
+                    <div class="card-body">
+                        <h5>Total Technical Created</h5>
+                        <h2 class="text-success">
+                            @Dashboard.TotalTechnical
+                        </h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow border-warning">
+                    <div class="card-body">
+                        <h5>Total Created</h5>
+                        <h2 class="text-warning">
+                            @Dashboard.TotalCreated
+                        </h2>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- HR Users -->
+
+        <div class="card shadow mt-4">
+
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    HR Users Created by @Session.Name
+                </h5>
+            </div>
+
+            <div class="card-body">
+
+                <div class="table-responsive">
+
+                    <table class="table table-bordered table-hover">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @if (Dashboard.HRUsers.Any())
+                            {
+                                @foreach (var user in Dashboard.HRUsers)
+                                {
+                                    <tr>
+                                        <td>@user.Id</td>
+                                        <td>@user.Name</td>
+                                        <td>@user.Email</td>
+                                        <td>@user.Role</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center">
+                                        No HR users created yet.
+                                    </td>
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Technical Users -->
+
+        <div class="card shadow mt-4">
+
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    Technical Users Created by @Session.Name
+                </h5>
+            </div>
+
+            <div class="card-body">
+
+                <div class="table-responsive">
+
+                    <table class="table table-bordered table-hover">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @if (Dashboard.TechnicalUsers.Any())
+                            {
+                                @foreach (var user in Dashboard.TechnicalUsers)
+                                {
+                                    <tr>
+                                        <td>@user.Id</td>
+                                        <td>@user.Name</td>
+                                        <td>@user.Email</td>
+                                        <td>@user.Role</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center">
+                                        No Technical users created yet.
+                                    </td>
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+        </div>
+    }
+
+    <!-- Logout -->
+
+    <button class="btn btn-outline-danger mt-4"
+            @onclick="Logout">
+        Logout
+    </button>
+
+</div>
+
+@code {
+
+    private ManagerDashboardModel? Dashboard;
+
+    private bool IsLoading = true;
+
+    private string ErrorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsLoggedIn ||
+            !string.Equals(
+                Session.Role,
+                "Manager",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/manager-login");
+            return;
+        }
+
+        await LoadDashboard();
+    }
+
+    private async Task LoadDashboard()
+    {
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = string.Empty;
+
+            Dashboard = await Http.GetManagerDashboard();
+
+            if (Dashboard == null)
+            {
+                ErrorMessage = "Unable to load dashboard data.";
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            ErrorMessage = $"API error: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading dashboard: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void CreateHR()
+    {
+        Navigation.NavigateTo("/create-hr");
+    }
+
+    private void CreateTechnical()
+    {
+        Navigation.NavigateTo("/create-technical");
+    }
+
+    private void Logout()
+    {
+        Session.Logout();
+        Navigation.NavigateTo("/manager-login");
+
+    }
+}

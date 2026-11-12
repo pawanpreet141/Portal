@@ -11,8 +11,9 @@ public interface IEmployeeService
         int userId);
 
     Task<Employee1> AddAsync(
-        Employee1 employee,
-        int userId);
+    Employee1 employee,
+    int userId,
+    string password);
 
     Task<Employee1?> UpdateAsync(
         Employee1 employee,

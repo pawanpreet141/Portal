@@ -10,23 +10,24 @@ namespace Employees.UI.Components.Pages
 
         private Employee1 employee = new();
 
+        private string employeePassword = string.Empty;
+
         private bool showForm;
         private bool IsBusy;
         private bool IsSuccess;
+
         private int editingId;
 
         private string Message = string.Empty;
 
         protected override async Task OnInitializedAsync()
         {
-            // Check login
             if (!UserSession.IsLoggedIn)
             {
                 Navigation.NavigateTo("/login");
                 return;
             }
 
-            // Only HR and Technical users can access this page
             if (!string.Equals(
                     UserSession.Role,
                     "HR",
@@ -43,7 +44,8 @@ namespace Employees.UI.Components.Pages
             await LoadEmployees();
         }
 
-        // Load employees created by logged-in HR or Technical user
+        // LOAD EMPLOYEES
+
         private async Task LoadEmployees()
         {
             try
@@ -64,7 +66,8 @@ namespace Employees.UI.Components.Pages
             }
         }
 
-        // Open employee creation form
+        // SHOW ADD FORM
+
         private void ShowAddForm()
         {
             employee = new Employee1
@@ -72,12 +75,17 @@ namespace Employees.UI.Components.Pages
                 Team = string.Empty
             };
 
+            employeePassword = string.Empty;
+
             editingId = 0;
+
             Message = string.Empty;
+
             showForm = true;
         }
 
-        // Edit employee
+        // EDIT EMPLOYEE
+
         private void EditEmployee(Employee1 selectedEmployee)
         {
             employee = new Employee1
@@ -98,13 +106,25 @@ namespace Employees.UI.Components.Pages
             showForm = true;
         }
 
-        // Save employee
+        // SAVE EMPLOYEE
+
         private async Task SaveEmployee()
         {
             if (IsBusy)
                 return;
 
+            if (editingId == 0 &&
+                string.IsNullOrWhiteSpace(employeePassword))
+            {
+                Message = "Employee password is required.";
+
+                IsSuccess = false;
+
+                return;
+            }
+
             IsBusy = true;
+
             Message = string.Empty;
 
             try
@@ -113,14 +133,26 @@ namespace Employees.UI.Components.Pages
 
                 if (editingId == 0)
                 {
-                    // Create employee
+                    // CREATE EMPLOYEE AND LOGIN ACCOUNT
+
+                    var request = new
+                    {
+                        Name = employee.Name,
+                        Email = employee.Email,
+                        Age = employee.Age,
+                        Salary = employee.Salary,
+                        Team = employee.Team,
+                        Password = employeePassword
+                    };
+
                     response = await HttpClient.PostAsync(
                         "api/Employees",
-                        employee);
+                        request);
                 }
                 else
                 {
-                    // Update employee
+                    // UPDATE EMPLOYEE
+
                     response = await HttpClient.PutAsync(
                         $"api/Employees/{editingId}",
                         employee);
@@ -144,7 +176,7 @@ namespace Employees.UI.Components.Pages
                 }
 
                 Message = editingId == 0
-                    ? "Employee added successfully."
+                    ? "Employee and login account created successfully."
                     : "Employee updated successfully.";
 
                 IsSuccess = true;
@@ -153,9 +185,10 @@ namespace Employees.UI.Components.Pages
 
                 employee = new Employee1();
 
+                employeePassword = string.Empty;
+
                 editingId = 0;
 
-                // Refresh employee list
                 await LoadEmployees();
             }
             catch (Exception ex)
@@ -170,13 +203,15 @@ namespace Employees.UI.Components.Pages
             }
         }
 
-        // Delete employee
+        // DELETE EMPLOYEE
+
         private async Task DeleteEmployee(int id)
         {
             if (IsBusy)
                 return;
 
             IsBusy = true;
+
             Message = string.Empty;
 
             try
@@ -216,19 +251,23 @@ namespace Employees.UI.Components.Pages
             }
         }
 
-        // Cancel form
+        // CANCEL FORM
+
         private void Cancel()
         {
             showForm = false;
 
             employee = new Employee1();
 
+            employeePassword = string.Empty;
+
             editingId = 0;
 
             Message = string.Empty;
         }
 
-        // Logout
+        // LOGOUT
+
         private void Logout()
         {
             UserSession.Logout();
@@ -239,9 +278,4 @@ namespace Employees.UI.Components.Pages
         }
     }
 }
-
-
-
-
-
 
