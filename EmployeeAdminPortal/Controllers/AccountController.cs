@@ -1,14 +1,17 @@
-﻿using Employee.Data.Data;
+﻿using Employee.BusinessLogic;
+using Employee.Data.Data;
 using Employee.Data.Models;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Employee.BusinessLogic;
 
 namespace Employee.API.Controllers
 {
@@ -23,12 +26,18 @@ namespace Employee.API.Controllers
         private readonly IValidator<LoginRequest> _loginValidator;
         private readonly ILogger<AccountController> _logger;
 
+        //13/11
+        private readonly IPasswordResetService _passwordResetService;
+
         public AccountController(
             EmployeeDbContext context,
             IConfiguration configuration,
             IValidator<SignupRequest> signupValidator,
             IValidator<LoginRequest> loginValidator,
-            ILogger<AccountController> logger)
+            ILogger<AccountController> logger,
+            //13/11
+            IPasswordResetService passwordResetService)
+
         {
             _context = context;
             _configuration = configuration;
@@ -36,6 +45,8 @@ namespace Employee.API.Controllers
             _signupValidator = signupValidator;
             _loginValidator = loginValidator;
             _logger = logger;
+            //13/11
+            _passwordResetService = passwordResetService;
         }
 
         //HR and Technical  CREATES EMPLOYEE ACCOUNTS
@@ -407,6 +418,147 @@ namespace Employee.API.Controllers
             });
         }
 
+        //13/11
+
+        // STEP 1: FORGOT PASSWORD - SEND OTP
+
+        [AllowAnonymous]
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(
+            [FromBody] ForgotPasswordRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Email))
+            {
+                return BadRequest(new
+                {
+                    message = "Email is required."
+                });
+            }
+
+            try
+            {
+                await _passwordResetService.RequestOtpAsync(
+                    request.Email.Trim());
+
+                // Same response whether the email exists or not.
+                return Ok(new
+                {
+                    message = "If the email is registered, an OTP will be sent."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process password reset request.");
+
+                return StatusCode(500, new
+                {
+                    message = "Unable to process password reset request."
+                });
+            }
+        }
+
+
+        // STEP 2: VERIFY OTP
+
+        [AllowAnonymous]
+        [HttpPost("verify-otp")]
+        public async Task<IActionResult> VerifyOtp(
+            [FromBody] VerifyOtpRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Email) ||
+                string.IsNullOrWhiteSpace(request.Otp))
+            {
+                return BadRequest(new
+                {
+                    message = "Email and OTP are required."
+                });
+            }
+
+            if (request.Otp.Length != 6 ||
+                !request.Otp.All(char.IsDigit))
+            {
+                return BadRequest(new
+                {
+                    message = "Please enter a valid six-digit OTP."
+                });
+            }
+
+            var resetToken = await _passwordResetService.VerifyOtpAsync(
+                request.Email.Trim(),
+                request.Otp.Trim());
+
+            if (resetToken == null)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid or expired OTP."
+                });
+            }
+
+            return Ok(new
+            {
+                resetToken,
+                message = "OTP verified successfully."
+            });
+        }
+
+
+        // STEP 3: RESET PASSWORD
+
+        [AllowAnonymous]
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(
+            [FromBody] ResetPasswordRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Email) ||
+                string.IsNullOrWhiteSpace(request.ResetToken) ||
+                string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                return BadRequest(new
+                {
+                    message = "All fields are required."
+                });
+            }
+
+            if (request.NewPassword.Length < 8)
+            {
+                return BadRequest(new
+                {
+                    message = "Password must contain at least 8 characters."
+                });
+            }
+
+            if (request.NewPassword != request.ConfirmPassword)
+            {
+                return BadRequest(new
+                {
+                    message = "Passwords do not match."
+                });
+            }
+
+            var result = await _passwordResetService.ResetPasswordAsync(
+                request.Email.Trim(),
+                request.ResetToken,
+                request.NewPassword);
+
+            if (!result)
+            {
+                return BadRequest(new
+                {
+                    message = "Password reset failed. Please verify your OTP again."
+                });
+            }
+
+            _logger.LogInformation(
+                "Password reset completed for account.");
+
+            return Ok(new
+            {
+                message = "Password changed successfully. Please login."
+            });
+        }
+
+
         // 5. JWT TOKEN GENERATION
 
         private string GenerateJwtToken(User user)
@@ -550,5 +702,30 @@ namespace Employee.API.Controllers
             public string Password { get; set; } = string.Empty;
             public string Department { get; set; } = string.Empty;
         }
+
+
+        public class ForgotPasswordRequest
+        {
+            public string Email { get; set; } = string.Empty;
+        }
+
+        public class VerifyOtpRequest
+        {
+            public string Email { get; set; } = string.Empty;
+
+            public string Otp { get; set; } = string.Empty;
+        }
+
+        public class ResetPasswordRequest
+        {
+            public string Email { get; set; } = string.Empty;
+
+            public string ResetToken { get; set; } = string.Empty;
+
+            public string NewPassword { get; set; } = string.Empty;
+
+            public string ConfirmPassword { get; set; } = string.Empty;
+        }
+
     }
 }

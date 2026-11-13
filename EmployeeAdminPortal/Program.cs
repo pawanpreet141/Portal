@@ -140,6 +140,14 @@ builder.Services.AddScoped<
     IEmployeeService,
     EmployeeService>();
 
+// Gmail SMTP Email Service
+builder.Services.AddScoped<
+    IEmailService,
+    EmailService>();
+
+builder.Services.AddScoped<
+    IPasswordResetService,
+    PasswordResetService>();
 
 
 builder.Services.AddScoped<
@@ -237,9 +245,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-
-//app.MapControllerRoute(
-//    name: "default",
-//    pattern: "{controller=Employee}/{action=Index}/{id?}");
 
 app.Run();
