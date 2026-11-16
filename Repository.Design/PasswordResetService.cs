@@ -201,20 +201,90 @@ namespace Employee.BusinessLogic
         }
 
         // STEP 1: Generate and send OTP
+        //public async Task RequestOtpAsync(string email)
+        //{
+        //    email = email.Trim();
+
+        //    var user = await _context.Users
+        //        .FirstOrDefaultAsync(x => x.Email == email);
+
+        //    if (user == null)
+        //    {
+        //        // Do not reveal whether the account exists.
+        //        return;
+        //    }
+
+        //    // Invalidate previous unused OTP records.
+        //    var oldOtps = await _context.PasswordResetOtps
+        //        .Where(x => x.UserId == user.Id && !x.IsUsed)
+        //        .ToListAsync();
+
+        //    foreach (var oldOtp in oldOtps)
+        //    {
+        //        oldOtp.IsUsed = true;
+        //    }
+
+        //    // Generate six-digit OTP.
+        //    var otp = RandomNumberGenerator
+        //        .GetInt32(100000, 1000000)
+        //        .ToString();
+
+        //    // Hash OTP before storing.
+        //    var otpHash = HashOtp(otp);
+
+        //    var resetOtp = new PasswordResetOtp
+        //    {
+        //        UserId = user.Id,
+        //        OtpHash = otpHash,
+        //        CreatedAt = DateTime.UtcNow,
+        //        ExpiryTime = DateTime.UtcNow.AddMinutes(5),
+        //        IsVerified = false,
+        //        IsUsed = false,
+        //        Attempts = 0
+        //    };
+
+        //    _context.PasswordResetOtps.Add(resetOtp);
+
+        //    await _context.SaveChangesAsync();
+
+        //    // Send OTP through Gmail SMTP.
+        //    var body =
+        //        $"Hello {user.Name},\n\n" +
+        //        $"Your password reset OTP is: {otp}\n\n" +
+        //        "This OTP expires in 5 minutes.\n\n" +
+        //        "If you did not request this, please ignore this email.";
+
+        //    await _emailService.SendEmailAsync(
+        //        user.Email,
+        //        "Employee Management - Password Reset OTP",
+        //        body);
+        //}
+
+
+
+
         public async Task RequestOtpAsync(string email)
         {
             email = email.Trim();
 
+            Console.WriteLine($"Forgot Password requested for: {email}");
+
+            // Search all five roles.
             var user = await _context.Users
-                .FirstOrDefaultAsync(x => x.Email == email);
+                .FirstOrDefaultAsync(x =>
+                    x.Email.Trim().ToLower() == email.ToLower());
 
             if (user == null)
             {
-                // Do not reveal whether the account exists.
+                Console.WriteLine("USER NOT FOUND IN DATABASE.");
                 return;
             }
 
-            // Invalidate previous unused OTP records.
+            Console.WriteLine($"User found: {user.Name}");
+            Console.WriteLine($"Role: {user.Role}");
+            Console.WriteLine($"Email: {user.Email}");
+
+            // Invalidate previous unused OTPs.
             var oldOtps = await _context.PasswordResetOtps
                 .Where(x => x.UserId == user.Id && !x.IsUsed)
                 .ToListAsync();
@@ -229,13 +299,10 @@ namespace Employee.BusinessLogic
                 .GetInt32(100000, 1000000)
                 .ToString();
 
-            // Hash OTP before storing.
-            var otpHash = HashOtp(otp);
-
             var resetOtp = new PasswordResetOtp
             {
                 UserId = user.Id,
-                OtpHash = otpHash,
+                OtpHash = HashOtp(otp),
                 CreatedAt = DateTime.UtcNow,
                 ExpiryTime = DateTime.UtcNow.AddMinutes(5),
                 IsVerified = false,
@@ -247,18 +314,31 @@ namespace Employee.BusinessLogic
 
             await _context.SaveChangesAsync();
 
-            // Send OTP through Gmail SMTP.
             var body =
                 $"Hello {user.Name},\n\n" +
                 $"Your password reset OTP is: {otp}\n\n" +
                 "This OTP expires in 5 minutes.\n\n" +
                 "If you did not request this, please ignore this email.";
 
-            await _emailService.SendEmailAsync(
-                user.Email,
-                "Employee Management - Password Reset OTP",
-                body);
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    user.Email,
+                    "Employee Management - Password Reset OTP",
+                    body);
+
+                Console.WriteLine(
+                    $"OTP EMAIL SENT SUCCESSFULLY: {user.Email}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SMTP EMAIL ERROR:");
+                Console.WriteLine(ex);
+
+                throw;
+            }
         }
+
 
         // STEP 2: Verify OTP
         public async Task<string?> VerifyOtpAsync(

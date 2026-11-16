@@ -43,13 +43,13 @@ namespace Employees.UI.Services
             return await response.Content.ReadFromJsonAsync<T>();
         }
 
-        // 12/11
+
         public async Task<ManagerDashboardModel?> GetManagerDashboard()
         {
             return await GetAsync<ManagerDashboardModel>(
                 "api/Account/manager-dashboard");
         }
-        //12/11
+
 
         public async Task<HttpResponseMessage> PutAsync<T>(
             string url, T data)
@@ -240,6 +240,143 @@ namespace Employees.UI.Services
             }
         }
 
+        //16/11
+
+        public async Task<ApiResponse> RequestPasswordOtp(string email)
+        {
+            try
+            {
+                var request = new
+                {
+                    Email = email
+                };
+
+                var response = await _httpClient.PostAsJsonAsync(
+                    "api/Account/forgot-password",
+                    request);
+
+                var text = await response.Content.ReadAsStringAsync();
+
+                return new ApiResponse
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.IsSuccessStatusCode
+                        ? "If the email is registered, an OTP will be sent."
+                        : text
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse
+                {
+                    Success = false,
+                    Message = "Unable to connect to the server: " + ex.Message
+                };
+            }
+        }
+        //16/11
+
+
+        public async Task<VerifyOtpResponse> VerifyPasswordOtp(
+            string email,
+            string otp)
+        {
+            try
+            {
+                var request = new
+                {
+                    Email = email,
+                    Otp = otp
+                };
+
+                var response = await _httpClient.PostAsJsonAsync(
+                    "api/Account/verify-otp",
+                    request);
+
+                var text = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return new VerifyOtpResponse
+                    {
+                        Success = false,
+                        Message = "Invalid or expired OTP."
+                    };
+                }
+
+                var result = JsonSerializer.Deserialize<VerifyOtpResponse>(
+                    text,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                if (result == null)
+                {
+                    return new VerifyOtpResponse
+                    {
+                        Success = false,
+                        Message = "Unable to verify OTP."
+                    };
+                }
+
+                result.Success = true;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return new VerifyOtpResponse
+                {
+                    Success = false,
+                    Message = "Unable to connect to API: " + ex.Message
+                };
+            }
+        }
+
+
+        //16/11
+
+
+
+        public async Task<ApiResponse> ResetPassword(
+            string email,
+            string resetToken,
+            string newPassword,
+            string confirmPassword)
+        {
+            try
+            {
+                var request = new
+                {
+                    Email = email,
+                    ResetToken = resetToken,
+                    NewPassword = newPassword,
+                    ConfirmPassword = confirmPassword
+                };
+
+                var response = await _httpClient.PostAsJsonAsync(
+                    "api/Account/reset-password",
+                    request);
+
+                var text = await response.Content.ReadAsStringAsync();
+
+                return new ApiResponse
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.IsSuccessStatusCode
+                        ? "Password changed successfully."
+                        : text
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse
+                {
+                    Success = false,
+                    Message = "Unable to connect to API: " + ex.Message
+                };
+            }
+        }
 
 
         private void AddAuthorizationHeader(
@@ -254,6 +391,7 @@ namespace Employees.UI.Services
         }
     }
 
+    //16/11
     public class LoginRequest
     {
         public string Email { get; set; } = string.Empty;
@@ -310,4 +448,16 @@ namespace Employees.UI.Services
         public string Token { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
     }
+
+
+
+    public class VerifyOtpResponse
+    {
+        public bool Success { get; set; }
+
+        public string ResetToken { get; set; } = string.Empty;
+
+        public string Message { get; set; } = string.Empty;
+    }
+
 }
