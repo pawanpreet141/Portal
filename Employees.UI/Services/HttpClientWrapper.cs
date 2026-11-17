@@ -274,7 +274,7 @@ namespace Employees.UI.Services
                 };
             }
         }
-        //16/11
+
 
 
         public async Task<VerifyOtpResponse> VerifyPasswordOtp(
@@ -334,7 +334,6 @@ namespace Employees.UI.Services
         }
 
 
-        //16/11
 
 
 
