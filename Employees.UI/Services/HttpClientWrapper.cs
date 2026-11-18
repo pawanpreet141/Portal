@@ -240,7 +240,8 @@ namespace Employees.UI.Services
             }
         }
 
-        //16/11
+
+
 
         public async Task<ApiResponse> RequestPasswordOtp(string email)
         {
@@ -257,12 +258,44 @@ namespace Employees.UI.Services
 
                 var text = await response.Content.ReadAsStringAsync();
 
+                // Read the actual message returned by API.
+                string message = string.Empty;
+
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    try
+                    {
+                        using var document = JsonDocument.Parse(text);
+
+                        if (document.RootElement.TryGetProperty(
+                            "message", out var messageElement))
+                        {
+                            message = messageElement.GetString() ?? string.Empty;
+                        }
+                    }
+                    catch (JsonException)
+                    {
+                        message = text;
+                    }
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return new ApiResponse
+                    {
+                        Success = false,
+                        Message = string.IsNullOrWhiteSpace(message)
+                            ? "Unable to process your request."
+                            : message
+                    };
+                }
+
                 return new ApiResponse
                 {
-                    Success = response.IsSuccessStatusCode,
-                    Message = response.IsSuccessStatusCode
-                        ? "If the email is registered, an OTP will be sent."
-                        : text
+                    Success = true,
+                    Message = string.IsNullOrWhiteSpace(message)
+                        ? "OTP sent successfully."
+                        : message
                 };
             }
             catch (Exception ex)
@@ -274,6 +307,7 @@ namespace Employees.UI.Services
                 };
             }
         }
+
 
 
 
@@ -390,7 +424,7 @@ namespace Employees.UI.Services
         }
     }
 
-    //16/11
+
     public class LoginRequest
     {
         public string Email { get; set; } = string.Empty;

@@ -11,7 +11,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Employee.BusinessLogic;
 
 namespace Employee.API.Controllers
 {
@@ -35,7 +34,6 @@ namespace Employee.API.Controllers
             IValidator<SignupRequest> signupValidator,
             IValidator<LoginRequest> loginValidator,
             ILogger<AccountController> logger,
-            //13/11
             IPasswordResetService passwordResetService)
 
         {
@@ -45,7 +43,6 @@ namespace Employee.API.Controllers
             _signupValidator = signupValidator;
             _loginValidator = loginValidator;
             _logger = logger;
-            //13/11
             _passwordResetService = passwordResetService;
         }
 
@@ -418,9 +415,10 @@ namespace Employee.API.Controllers
             });
         }
 
-        //13/11
 
-        // STEP 1: FORGOT PASSWORD - SEND OTP
+
+        //FORGOT PASSWORD - SEND OTP
+
 
         [AllowAnonymous]
         [HttpPost("forgot-password")]
@@ -437,25 +435,35 @@ namespace Employee.API.Controllers
 
             try
             {
-                await _passwordResetService.RequestOtpAsync(
+                var result = await _passwordResetService.RequestOtpAsync(
                     request.Email.Trim());
 
-                // Same response whether the email exists or not.
+                if (!result)
+                {
+                    return NotFound(new
+                    {
+                        message = "Email is not registered."
+                    });
+                }
+
                 return Ok(new
                 {
-                    message = "If the email is registered, an OTP will be sent."
+                    message = "OTP sent successfully."
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to process password reset request.");
+                _logger.LogError(
+                    ex,
+                    "Failed to process password reset request.");
 
                 return StatusCode(500, new
                 {
-                    message = "Unable to process password reset request."
+                    message = "Unable to send OTP. Please try again."
                 });
             }
         }
+
 
 
         // STEP 2: VERIFY OTP
@@ -605,7 +613,6 @@ namespace Employee.API.Controllers
         }
 
 
-        // 12/11/26
 
 
         // MANAGER DASHBOARD - GET HR AND TECHNICAL USERS

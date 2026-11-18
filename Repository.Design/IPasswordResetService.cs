@@ -4,7 +4,7 @@ namespace Employee.BusinessLogic
     public interface IPasswordResetService
     {
         // Send OTP to registered email
-        Task RequestOtpAsync(string email);
+        Task<bool> RequestOtpAsync(string email);
 
         // Verify OTP and return reset authorization token
         Task<string?> VerifyOtpAsync(

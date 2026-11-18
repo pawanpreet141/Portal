@@ -24,13 +24,14 @@ namespace Employee.BusinessLogic
         }
 
 
-        public async Task RequestOtpAsync(string email)
+
+        public async Task<bool> RequestOtpAsync(string email)
         {
             email = email.Trim();
 
             Console.WriteLine($"Forgot Password requested for: {email}");
 
-            // Search all five roles.
+            // Check whether email exists.
             var user = await _context.Users
                 .FirstOrDefaultAsync(x =>
                     x.Email.Trim().ToLower() == email.ToLower());
@@ -38,12 +39,11 @@ namespace Employee.BusinessLogic
             if (user == null)
             {
                 Console.WriteLine("USER NOT FOUND IN DATABASE.");
-                return;
+                return false;
             }
 
             Console.WriteLine($"User found: {user.Name}");
             Console.WriteLine($"Role: {user.Role}");
-            Console.WriteLine($"Email: {user.Email}");
 
             // Invalidate previous unused OTPs.
             var oldOtps = await _context.PasswordResetOtps
@@ -81,25 +81,15 @@ namespace Employee.BusinessLogic
                 "This OTP expires in 5 minutes.\n\n" +
                 "If you did not request this, please ignore this email.";
 
-            try
-            {
-                await _emailService.SendEmailAsync(
-                    user.Email,
-                    "Employee Management - Password Reset OTP",
-                    body);
+            await _emailService.SendEmailAsync(
+                user.Email,
+                "Employee Management - Password Reset OTP",
+                body);
 
-                Console.WriteLine(
-                    $"OTP EMAIL SENT SUCCESSFULLY: {user.Email}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("SMTP EMAIL ERROR:");
-                Console.WriteLine(ex);
+            Console.WriteLine($"OTP EMAIL SENT: {user.Email}");
 
-                throw;
-            }
+            return true;
         }
-
 
         // STEP 2: Verify OTP
         public async Task<string?> VerifyOtpAsync(
