@@ -438,11 +438,28 @@ namespace Employee.API.Controllers
                 var result = await _passwordResetService.RequestOtpAsync(
                     request.Email.Trim());
 
-                if (!result)
+                if (result.UserNotFound)
                 {
                     return NotFound(new
                     {
                         message = "Email is not registered."
+                    });
+                }
+
+                if (result.IsRateLimited)
+                {
+                    return StatusCode(429, new
+                    {
+                        message = "Please wait before requesting another OTP.",
+                        retryAfterSeconds = result.RetryAfterSeconds
+                    });
+                }
+
+                if (!result.Success)
+                {
+                    return StatusCode(500, new
+                    {
+                        message = "Unable to send OTP. Please try again."
                     });
                 }
 
@@ -463,6 +480,35 @@ namespace Employee.API.Controllers
                 });
             }
         }
+
+        // RESEND OTP 19/11
+        [AllowAnonymous]
+        [HttpPost("resend-otp")]
+        public async Task<IActionResult> ResendOtp(
+            [FromBody] ForgotPasswordRequest request)
+        {
+            return await SendPasswordOtp(request.Email);
+        }
+
+
+        //19/11
+        [AllowAnonymous]
+        [HttpGet("otp-resend-status")]
+        public async Task<IActionResult> GetOtpResendStatus(
+            [FromQuery] string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return BadRequest(new { message = "Email is required." });
+
+            var seconds =
+                await _passwordResetService.GetResendWaitSecondsAsync(email);
+
+            return Ok(new
+            {
+                retryAfterSeconds = seconds
+            });
+        }
+
 
 
 
@@ -509,6 +555,7 @@ namespace Employee.API.Controllers
                 message = "OTP verified successfully."
             });
         }
+
 
 
         // STEP 3: RESET PASSWORD
@@ -564,6 +611,65 @@ namespace Employee.API.Controllers
             {
                 message = "Password changed successfully. Please login."
             });
+        }
+
+
+        // COMMON OTP SENDING METHOD 19/11
+        private async Task<IActionResult> SendPasswordOtp(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return BadRequest(new
+                {
+                    message = "Email is required."
+                });
+            }
+
+            try
+            {
+                var result =
+                    await _passwordResetService.RequestOtpAsync(email.Trim());
+
+                if (result.UserNotFound)
+                {
+                    return NotFound(new
+                    {
+                        message = "Email is not registered."
+                    });
+                }
+
+                if (result.IsRateLimited)
+                {
+                    return StatusCode(429, new
+                    {
+                        message = "Please wait before requesting another OTP.",
+                        retryAfterSeconds = result.RetryAfterSeconds
+                    });
+                }
+
+                if (!result.Success)
+                {
+                    return StatusCode(500, new
+                    {
+                        message = "Unable to send OTP. Please try again."
+                    });
+                }
+
+                return Ok(new
+                {
+                    message = "OTP sent successfully."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to send password reset OTP.");
+
+                return StatusCode(500, new
+                {
+                    message = "Unable to send OTP. Please try again."
+                });
+            }
         }
 
 

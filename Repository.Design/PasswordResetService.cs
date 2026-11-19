@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
+using Employee.BusinessLogic;
 
 namespace Employee.BusinessLogic
 {
@@ -24,28 +25,47 @@ namespace Employee.BusinessLogic
         }
 
 
-
-        public async Task<bool> RequestOtpAsync(string email)
+        public async Task<PasswordOtpResult> RequestOtpAsync(string email)
         {
             email = email.Trim();
 
-            Console.WriteLine($"Forgot Password requested for: {email}");
-
-            // Check whether email exists.
             var user = await _context.Users
                 .FirstOrDefaultAsync(x =>
                     x.Email.Trim().ToLower() == email.ToLower());
 
             if (user == null)
             {
-                Console.WriteLine("USER NOT FOUND IN DATABASE.");
-                return false;
+                return new PasswordOtpResult
+                {
+                    UserNotFound = true
+                };
             }
 
-            Console.WriteLine($"User found: {user.Name}");
-            Console.WriteLine($"Role: {user.Role}");
+            var now = DateTime.UtcNow;
 
-            // Invalidate previous unused OTPs.
+            // Check the most recently generated OTP.
+            var latestOtp = await _context.PasswordResetOtps
+                .Where(x => x.UserId == user.Id)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            // Enforce 30-second resend cooldown.
+            if (latestOtp != null)
+            {
+                var elapsed = (now - latestOtp.CreatedAt).TotalSeconds;
+                var remaining = (int)Math.Ceiling(30 - elapsed);
+
+                if (remaining > 0)
+                {
+                    return new PasswordOtpResult
+                    {
+                        IsRateLimited = true,
+                        RetryAfterSeconds = remaining
+                    };
+                }
+            }
+
+            // Invalidate all previous unused OTPs.
             var oldOtps = await _context.PasswordResetOtps
                 .Where(x => x.UserId == user.Id && !x.IsUsed)
                 .ToListAsync();
@@ -55,7 +75,7 @@ namespace Employee.BusinessLogic
                 oldOtp.IsUsed = true;
             }
 
-            // Generate six-digit OTP.
+            // Generate new six-digit OTP.
             var otp = RandomNumberGenerator
                 .GetInt32(100000, 1000000)
                 .ToString();
@@ -64,8 +84,8 @@ namespace Employee.BusinessLogic
             {
                 UserId = user.Id,
                 OtpHash = HashOtp(otp),
-                CreatedAt = DateTime.UtcNow,
-                ExpiryTime = DateTime.UtcNow.AddMinutes(5),
+                CreatedAt = now,
+                ExpiryTime = now.AddMinutes(5),
                 IsVerified = false,
                 IsUsed = false,
                 Attempts = 0
@@ -86,9 +106,39 @@ namespace Employee.BusinessLogic
                 "Employee Management - Password Reset OTP",
                 body);
 
-            Console.WriteLine($"OTP EMAIL SENT: {user.Email}");
+            return new PasswordOtpResult
+            {
+                Success = true
+            };
+        }
 
-            return true;
+
+
+
+        // Get actual remaining resend cooldown.
+        public async Task<int> GetResendWaitSecondsAsync(string email)
+        {
+            email = email.Trim();
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(x =>
+                    x.Email.Trim().ToLower() == email.ToLower());
+
+            if (user == null)
+                return 0;
+
+            var latestOtp = await _context.PasswordResetOtps
+                .Where(x => x.UserId == user.Id)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (latestOtp == null)
+                return 0;
+
+            var elapsed =
+                (DateTime.UtcNow - latestOtp.CreatedAt).TotalSeconds;
+
+            return Math.Max(0, (int)Math.Ceiling(30 - elapsed));
         }
 
         // STEP 2: Verify OTP

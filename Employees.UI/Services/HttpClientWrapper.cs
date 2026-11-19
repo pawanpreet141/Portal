@@ -422,6 +422,80 @@ namespace Employees.UI.Services
                         "Bearer", _userSession.Token);
             }
         }
+        // GET OTP RESEND TIMER
+        public async Task<int> GetOtpResendWaitSeconds(string email)
+        {
+            try
+            {
+                var url = "api/Account/otp-resend-status?email=" +
+                          Uri.EscapeDataString(email);
+
+                var response = await _httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                    return 0;
+
+                var result = await response.Content.ReadFromJsonAsync<OtpTimerResponse>();
+
+                return result?.RetryAfterSeconds ?? 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+
+        // RESEND PASSWORD OTP
+        public async Task<ApiResponse> ResendPasswordOtp(string email)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync(
+                    "api/Account/resend-otp",
+                    new { Email = email });
+
+                var text = await response.Content.ReadAsStringAsync();
+
+                string message = "Unable to resend OTP.";
+                int retrySeconds = 0;
+
+                try
+                {
+                    using var document = JsonDocument.Parse(text);
+
+                    var root = document.RootElement;
+
+                    if (root.TryGetProperty("message", out var msg))
+                        message = msg.GetString() ?? message;
+
+                    if (root.TryGetProperty(
+                        "retryAfterSeconds", out var retry))
+                    {
+                        retrySeconds = retry.GetInt32();
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Keep default message.
+                }
+
+                return new ApiResponse
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = message,
+                    RetryAfterSeconds = retrySeconds
+                };
+            }
+            catch
+            {
+                return new ApiResponse
+                {
+                    Success = false,
+                    Message = "Unable to connect to the server."
+                };
+            }
+        }
     }
 
 
@@ -464,10 +538,19 @@ namespace Employees.UI.Services
         public string Department { get; set; } = string.Empty;
     }
 
+    //public class ApiResponse
+    //{
+    //    public bool Success { get; set; }
+    //    public string Message { get; set; } = string.Empty;
+    //}
+
     public class ApiResponse
     {
         public bool Success { get; set; }
+
         public string Message { get; set; } = string.Empty;
+
+        public int RetryAfterSeconds { get; set; }
     }
 
     public class LoginResponse
@@ -491,6 +574,11 @@ namespace Employees.UI.Services
         public string ResetToken { get; set; } = string.Empty;
 
         public string Message { get; set; } = string.Empty;
+    }
+
+    public class OtpTimerResponse
+    {
+        public int RetryAfterSeconds { get; set; }
     }
 
 }

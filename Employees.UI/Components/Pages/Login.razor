@@ -26,11 +26,31 @@
                                @bind="Email" />
                     </div>
 
+
                     <div class="mb-3">
                         <label>Password</label>
-                        <input class="form-control"
-                               type="password"
-                               @bind="Password" />
+
+                        <div class="input-group">
+                            <input class="form-control"
+                                   type="@(ShowPassword ? "text" : "password")"
+                                   @bind="Password"
+                                   placeholder="Enter password" />
+
+                            <button class="btn btn-outline-secondary"
+                                    type="button"
+                                    @onclick="TogglePassword">
+
+                                @if (ShowPassword)
+                                {
+                                    <i class="bi bi-eye-slash"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-eye"></i>
+                                }
+
+                            </button>
+                        </div>
                     </div>
 
 

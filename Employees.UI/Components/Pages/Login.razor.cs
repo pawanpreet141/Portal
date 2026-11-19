@@ -7,10 +7,19 @@ namespace Employees.UI.Components.Pages
 {
     public partial class Login
     {
+
         private string Email = string.Empty;
         private string Password = string.Empty;
         private string ErrorMessage = string.Empty;
         private bool IsBusy;
+        private bool ShowPassword = false;
+
+        private void TogglePassword()
+        {
+            ShowPassword = !ShowPassword;
+        }
+
+
 
 
         private async Task LoginUser()

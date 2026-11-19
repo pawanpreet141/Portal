@@ -1,20 +1,29 @@
-﻿
-namespace Employee.BusinessLogic
+﻿namespace Employee.BusinessLogic
 {
     public interface IPasswordResetService
     {
-        // Send OTP to registered email
-        Task<bool> RequestOtpAsync(string email);
+        Task<PasswordOtpResult> RequestOtpAsync(string email);
 
-        // Verify OTP and return reset authorization token
         Task<string?> VerifyOtpAsync(
             string email,
             string otp);
 
-        // Update password after OTP verification
         Task<bool> ResetPasswordAsync(
             string email,
             string resetToken,
             string newPassword);
+
+        Task<int> GetResendWaitSecondsAsync(string email);
+    }
+
+    public class PasswordOtpResult
+    {
+        public bool Success { get; set; }
+
+        public bool UserNotFound { get; set; }
+
+        public bool IsRateLimited { get; set; }
+
+        public int RetryAfterSeconds { get; set; }
     }
 }

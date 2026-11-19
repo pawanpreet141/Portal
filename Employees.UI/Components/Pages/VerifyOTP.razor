@@ -1,6 +1,7 @@
 ﻿@page "/verify-otp"
 @layout Employees.UI.Components.Layout.Layout
 @rendermode InteractiveServer
+@implements IAsyncDisposable
 
 @using Microsoft.AspNetCore.WebUtilities
 @using Employees.UI.Services
@@ -53,6 +54,13 @@
                         </div>
                     }
 
+                    @if (!string.IsNullOrWhiteSpace(SuccessMessage))
+                    {
+                        <div class="alert alert-success">
+                            @SuccessMessage
+                        </div>
+                    }
+
                     <button class="btn btn-primary w-100"
                             @onclick="VerifyOtp"
                             disabled="@IsLoading">
@@ -67,6 +75,86 @@
                         }
 
                     </button>
+
+                    @* <div class="text-center mt-4">
+
+                        <p class="mb-2">
+                            Resend OTP
+                        </p>
+
+                        @if (RemainingSeconds > 0)
+                        {
+                            <h4 class="text-primary">
+                                @FormattedTime
+                            </h4>
+
+                            <p class="text-muted small">
+                                You can resend OTP when the timer ends.
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="text-success">
+                                You can request a new OTP now.
+                            </p>
+                        }
+
+                        <button class="btn btn-outline-primary w-100"
+                                @onclick="ResendOtp"
+                                disabled="@(RemainingSeconds > 0 || IsResending)">
+
+                            @if (IsResending)
+                            {
+                                <span>Sending...</span>
+                            }
+                            else if (RemainingSeconds > 0)
+                            {
+                                <span>Resend OTP (@FormattedTime)</span>
+                            }
+                            else
+                            {
+                                <span>Resend OTP</span>
+                            }
+
+                        </button>
+
+                    </div> *@
+
+                    <div class="text-center mt-4">
+
+                        <button class="btn btn-outline-primary w-100"
+                                @onclick="ResendOtp"
+                                disabled="@(RemainingSeconds > 0 || IsResending)">
+
+                            @if (IsResending)
+                            {
+                                <span>Sending...</span>
+                            }
+                            else if (RemainingSeconds > 0)
+                            {
+                                <span>Resend OTP (@FormattedTime)</span>
+                            }
+                            else
+                            {
+                                <span>Resend OTP</span>
+                            }
+
+                        </button>
+
+                        @if (RemainingSeconds > 0)
+                        {
+                            <p class="text-muted small mt-2">
+                                You can resend OTP when the timer ends.
+                            </p>
+                        }
+                        else if (!IsResending)
+                        {
+                            <p class="text-success small mt-2">
+                                You can request a new OTP now.
+                            </p>
+                        }
+
+                    </div>
 
                     <div class="text-center mt-3">
                         <a href="/forgot-password">
@@ -83,6 +171,7 @@
 </div>
 
 @code {
+
     [SupplyParameterFromQuery]
     public string? Email { get; set; }
 
@@ -90,11 +179,129 @@
 
     private string ErrorMessage = string.Empty;
 
+    private string SuccessMessage = string.Empty;
+
     private bool IsLoading = false;
+
+    private bool IsResending = false;
+
+    private int RemainingSeconds = 0;
+
+    private CancellationTokenSource? timerCancellation;
+
+    private string FormattedTime =>
+        $"{RemainingSeconds / 60:D2}:{RemainingSeconds % 60:D2}";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Email))
+        {
+            ErrorMessage = "Email address is missing.";
+            return;
+        }
+
+        // Get actual cooldown from backend.
+        RemainingSeconds =
+            await Api.GetOtpResendWaitSeconds(Email.Trim());
+
+        StartCountdown();
+    }
+
+
+    private void StartCountdown()
+    {
+        timerCancellation?.Cancel();
+        timerCancellation?.Dispose();
+
+        timerCancellation = new CancellationTokenSource();
+
+        _ = RunCountdown(timerCancellation.Token);
+    }
+
+
+    private async Task RunCountdown(CancellationToken token)
+    {
+        try
+        {
+            while (RemainingSeconds > 0 && !token.IsCancellationRequested)
+            {
+                await Task.Delay(1000, token);
+
+                await InvokeAsync(() =>
+                {
+                    if (RemainingSeconds > 0)
+                    {
+                        RemainingSeconds--;
+                        StateHasChanged();
+                    }
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Timer stopped.
+        }
+    }
+
+
+    private async Task ResendOtp()
+    {
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(Email))
+        {
+            ErrorMessage = "Email address is missing.";
+            return;
+        }
+
+        if (RemainingSeconds > 0 || IsResending)
+            return;
+
+        IsResending = true;
+
+        try
+        {
+            var result = await Api.ResendPasswordOtp(Email.Trim());
+
+            if (result.Success)
+            {
+                OTP = string.Empty;
+
+                SuccessMessage = "A new OTP has been sent to your email.";
+
+                RemainingSeconds = 30;
+
+                StartCountdown();
+            }
+            else
+            {
+                ErrorMessage = result.Message;
+
+                // Synchronize timer with server if request was too early.
+                if (result.RetryAfterSeconds > 0)
+                {
+                    RemainingSeconds = result.RetryAfterSeconds;
+                    StartCountdown();
+                }
+            }
+        }
+        catch
+        {
+            ErrorMessage = "Unable to resend OTP. Please try again.";
+        }
+        finally
+        {
+            IsResending = false;
+        }
+    }
+
 
     private async Task VerifyOtp()
     {
         ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
 
         if (string.IsNullOrWhiteSpace(Email))
         {
@@ -140,5 +347,14 @@
         {
             IsLoading = false;
         }
+    }
+
+
+    public ValueTask DisposeAsync()
+    {
+        timerCancellation?.Cancel();
+        timerCancellation?.Dispose();
+
+        return ValueTask.CompletedTask;
     }
 }
