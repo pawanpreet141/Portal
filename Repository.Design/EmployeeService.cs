@@ -112,8 +112,21 @@ public class EmployeeService : IEmployeeService
             employee.Name = employeeUser.Name;
             employee.Email = employeeUser.Email;
             employee.Department = employee.Team;
-            employee.UserId = creator.Id;
+            //employee.UserId = creator.Id;
+            //employee.LoginUserId = employeeUser.Id;
+            //employee.ManagerId = creator.ManagerId;
+
+            // Employee's own login account ID
+            employee.UserId = employeeUser.Id;
+
+            // HR or Technical creator ID
+            employee.CreatedBy = creator.Id;
+
+            // No separate login user ID needed
+            employee.LoginUserId = null;
+
             employee.ManagerId = creator.ManagerId;
+
 
             employee.CreatedAt =
                 DateTime.UtcNow.AddHours(5).AddMinutes(30);
@@ -135,7 +148,7 @@ public class EmployeeService : IEmployeeService
         }
     }
 
-    //12/11
+
 
 
 

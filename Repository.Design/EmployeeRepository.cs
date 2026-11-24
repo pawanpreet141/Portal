@@ -17,7 +17,8 @@ namespace Employee.BusinessLogic
         public async Task<List<Employee1>> GetAllAsync(int userId)
         {
             return await _context.Employees
-                .Where(e => e.UserId == userId)
+                //.Where(e => e.UserId == userId)
+                .Where(e => e.CreatedBy == userId)
                 .OrderByDescending(e => e.Id)
                 .ToListAsync();
         }
@@ -29,8 +30,10 @@ namespace Employee.BusinessLogic
         {
             return await _context.Employees
                 .FirstOrDefaultAsync(e =>
+                    //e.Id == id &&
+                    //e.UserId == userId);
                     e.Id == id &&
-                    e.UserId == userId);
+                    e.CreatedBy == userId);
         }
 
         // Create employee
@@ -43,6 +46,22 @@ namespace Employee.BusinessLogic
             return employee;
         }
 
+        
+        public async Task<Employee1?> GetEmployeeForLeaveAsync(int id)
+        {
+            return await _context.Employees
+                .FirstOrDefaultAsync(e => e.Id == id);
+        }
+
+        // Update only employees created by logged-in user
+        public async Task<Employee1?> GetEmployeeByLoginUserIdAsync(
+    int loginUserId)
+        {
+            return await _context.Employees
+                .FirstOrDefaultAsync(e => e.UserId == loginUserId);
+        }
+
+
         // Update only employees created by logged-in user
         public async Task<Employee1?> UpdateAsync(
             Employee1 employee,
@@ -52,7 +71,7 @@ namespace Employee.BusinessLogic
                 await _context.Employees
                     .FirstOrDefaultAsync(e =>
                         e.Id == employee.Id &&
-                        e.UserId == userId);
+                        e.CreatedBy == userId);
 
             if (existingEmployee == null)
             {
@@ -84,7 +103,7 @@ namespace Employee.BusinessLogic
                 await _context.Employees
                     .FirstOrDefaultAsync(e =>
                         e.Id == id &&
-                        e.UserId == userId);
+                        e.CreatedBy == userId);
 
             if (employee == null)
             {

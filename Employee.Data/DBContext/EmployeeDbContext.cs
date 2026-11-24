@@ -17,6 +17,8 @@ namespace Employee.Data.Data
 
         public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
 
+        public DbSet<LeaveRequest> LeaveRequests { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -96,6 +98,9 @@ namespace Employee.Data.Data
                 .HasColumnType("datetime");
 
             modelBuilder.Entity<Employee1>()
+                .Property(x => x.CreatedBy);    
+
+            modelBuilder.Entity<Employee1>()
                 .HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
@@ -106,6 +111,12 @@ namespace Employee.Data.Data
                 .WithMany(x => x.Employees)
                 .HasForeignKey(x => x.ManagerId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Employee1>()
+                 .HasOne<User>()
+                 .WithMany()
+                 .HasForeignKey(x => x.LoginUserId)
+                 .OnDelete(DeleteBehavior.Restrict);
 
             // USER SELF-RELATIONSHIPS
             modelBuilder.Entity<User>()
@@ -140,6 +151,19 @@ namespace Employee.Data.Data
                 .Property(x => x.OtpHash)
                 .IsRequired()
                 .HasMaxLength(64);
+
+            // LEAVE REQUEST TABLE
+            modelBuilder.Entity<LeaveRequest>()
+                .ToTable("TblLeaveRequests");
+
+            modelBuilder.Entity<LeaveRequest>()
+                .HasKey(x => x.Id);
+
+            modelBuilder.Entity<LeaveRequest>()
+                .HasOne(x => x.Employee)
+                .WithMany()
+                .HasForeignKey(x => x.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -24,4 +24,9 @@ public interface IEmployeeRepository
     Task<bool> DeleteAsync(
         int id,
         int userId);
+
+    // Get employee by ID for leave management
+    Task<Employee1?> GetEmployeeForLeaveAsync(int id);
+
+    Task<Employee1?> GetEmployeeByLoginUserIdAsync(int loginUserId);
 }

@@ -19,9 +19,13 @@
 
         public int? ManagerId { get; set; }
 
+        public int? CreatedBy { get; set; }
+
         public string? Team { get; set; } = string.Empty;
 
         public User? User { get; set; }
+
+        public int? LoginUserId { get; set; }
 
         public User? Manager { get; set; }
 

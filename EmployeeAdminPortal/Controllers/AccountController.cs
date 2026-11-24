@@ -154,6 +154,19 @@ namespace Employee.API.Controllers
                 await _context.SaveChangesAsync();
 
                 // Create employee profile
+                //var employeeProfile = new Employee1
+                //{
+                //    Name = employeeUser.Name,
+                //    Email = employeeUser.Email,
+                //    Department = selectedDepartment,
+                //    Team = selectedDepartment,
+
+                //    // ID of HR or Technical who created employee
+                //    UserId = creator.Id,
+
+                //    // Preserve manager relationship
+                //    ManagerId = employeeUser.ManagerId
+                //};
                 var employeeProfile = new Employee1
                 {
                     Name = employeeUser.Name,
@@ -161,12 +174,21 @@ namespace Employee.API.Controllers
                     Department = selectedDepartment,
                     Team = selectedDepartment,
 
-                    // ID of HR or Technical who created employee
+                    // HR or Technical creator ID
                     UserId = creator.Id,
 
-                    // Preserve manager relationship
-                    ManagerId = employeeUser.ManagerId
+                    // Employee's own login ID
+                    LoginUserId = employeeUser.Id,
+
+                    ManagerId = employeeUser.ManagerId,
+
+                    CreatedAt = DateTime.UtcNow
                 };
+
+
+
+
+
 
                 _context.Employees.Add(employeeProfile);
 
@@ -481,7 +503,7 @@ namespace Employee.API.Controllers
             }
         }
 
-        // RESEND OTP 19/11
+        // RESEND OTP
         [AllowAnonymous]
         [HttpPost("resend-otp")]
         public async Task<IActionResult> ResendOtp(
@@ -491,7 +513,7 @@ namespace Employee.API.Controllers
         }
 
 
-        //19/11
+
         [AllowAnonymous]
         [HttpGet("otp-resend-status")]
         public async Task<IActionResult> GetOtpResendStatus(
