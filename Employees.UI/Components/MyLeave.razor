@@ -1,0 +1,195 @@
+﻿@page "/my-leaves"
+@layout Employees.UI.Components.Layout.Layout
+@rendermode InteractiveServer
+@using Employee.UI.Models
+@using Employees.UI.Services
+
+@inject LeaveService LeaveService
+@inject UserSession UserSession
+@inject NavigationManager Navigation
+
+<PageTitle>My Leave Requests</PageTitle>
+
+<div class="container mt-4">
+
+    <div class="card shadow">
+
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">My Leave Requests</h3>
+        </div>
+
+        <div class="card-body">
+
+            @if (!UserSession.IsLoggedIn ||
+                 !string.Equals(UserSession.Role?.Trim(),
+                 "Employee",
+                 StringComparison.OrdinalIgnoreCase))
+            {
+                <div class="alert alert-warning">
+                    Please login using your employee account.
+                </div>
+            }
+            else if (isLoading)
+            {
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2">Loading leave requests...</p>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    @errorMessage
+                </div>
+
+                <button class="btn btn-primary"
+                        @onclick="LoadLeaves">
+                    Try Again
+                </button>
+            }
+            else if (leaves.Count == 0)
+            {
+                <div class="alert alert-info">
+                    You have not applied for any leave yet.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+
+                    <table class="table table-bordered table-hover align-middle">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>Leave ID</th>
+                                <th>Leave Type</th>
+                                <th>From Date</th>
+                                <th>To Date</th>
+                                <th>Reason</th>
+                                <th>Applied Date</th>
+                                <th>Status</th>
+                                <th>Rejection Reason</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var leave in leaves)
+                            {
+                                <tr>
+                                    <td>@leave.Id</td>
+
+                                    <td>@leave.LeaveType</td>
+
+                                    <td>@leave.FromDate.ToString("dd-MM-yyyy")</td>
+
+                                    <td>@leave.ToDate.ToString("dd-MM-yyyy")</td>
+
+                                    <td>@leave.Reason</td>
+
+                                    <td>@leave.AppliedDate.ToString("dd-MM-yyyy")</td>
+
+                                    <td>
+                                        @if (leave.Status.Equals(
+                                            "Approved",
+                                            StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-success">
+                                                Approved
+                                            </span>
+                                        }
+                                        else if (leave.Status.Equals(
+                                            "Rejected",
+                                            StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-danger">
+                                                Rejected
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                @leave.Status
+                                            </span>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        @(string.IsNullOrWhiteSpace(
+                                            leave.RejectionReason)
+                                            ? "-"
+                                            : leave.RejectionReason)
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+
+                    </table>
+
+                </div>
+            }
+
+            <button class="btn btn-secondary mt-3"
+                    @onclick="GoBack">
+
+                <i class="bi bi-arrow-left me-2"></i>
+                Back to Dashboard
+
+            </button>
+
+        </div>
+    </div>
+
+</div>
+
+@code {
+
+    private List<LeaveRequest> leaves = new();
+
+    private bool isLoading = true;
+
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!UserSession.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (!string.Equals(
+            UserSession.Role?.Trim(),
+            "Employee",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadLeaves();
+    }
+
+    private async Task LoadLeaves()
+    {
+        isLoading = true;
+        errorMessage = "";
+
+        try
+        {
+            leaves = await LeaveService.GetMyLeavesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Unable to load leave requests: " + ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/employee-dashboard");
+    }
+}

@@ -5,16 +5,62 @@
 @using Employees.UI.Services
 @using Microsoft.AspNetCore.Components.Forms
 
-@inject HttpClientWrapper HttpClient
 @inject UserSession UserSession
 @inject NavigationManager Navigation
+@inject HttpClientWrapper HttpClient
 
 <PageTitle>My Employees</PageTitle>
 
 <div class="container mt-4">
 
-    <h3>My Employees</h3>
-    <p>Welcome, @UserSession.Name</p>
+    <!-- PAGE HEADER -->
+
+    <div class="d-flex justify-content-between align-items-start mb-4">
+
+        <div>
+
+            <h3>My Employees</h3>
+
+            <p class="text-muted mb-3">
+                Welcome, @UserSession.Name
+            </p>
+
+            <button class="btn btn-primary"
+                    @onclick="ShowAddForm">
+
+                <i class="bi bi-person-plus me-1"></i>
+                Add Employee
+
+            </button>
+
+        </div>
+
+        <div class="d-flex gap-2">
+
+            @if (UserSession.Role == "HR" ||
+                 UserSession.Role == "Technical")
+            {
+                <button class="btn btn-warning"
+                        @onclick="OpenPendingLeaves">
+
+                    <i class="bi bi-calendar-check me-1"></i>
+                    Pending Leave Requests
+
+                </button>
+            }
+
+            <button class="btn btn-outline-danger"
+                    @onclick="Logout">
+
+                <i class="bi bi-box-arrow-right me-1"></i>
+                Logout
+
+            </button>
+
+        </div>
+
+    </div>
+
     <hr />
 
     @if (!string.IsNullOrWhiteSpace(Message))
@@ -24,26 +70,11 @@
         </div>
     }
 
-    <div class="mb-3">
-
-        <button class="btn btn-primary"
-                @onclick="ShowAddForm">
-            Add Employee
-        </button>
-
-        <button class="btn btn-outline-danger ms-2"
-                @onclick="Logout">
-            Logout
-        </button>
-
-    </div>
-
-
     @if (showForm)
     {
-        <!-- SHOW ONLY FORM -->
+        <!-- ADD / EDIT EMPLOYEE FORM -->
 
-        <div class="card mb-4">
+        <div class="card mb-4 shadow-sm">
 
             <div class="card-header">
                 <strong>
@@ -121,14 +152,18 @@
                     <button type="submit"
                             class="btn btn-success"
                             disabled="@IsBusy">
+
                         @(IsBusy ? "Saving..." : "Save")
+
                     </button>
 
                     <button type="button"
                             class="btn btn-secondary ms-2"
                             @onclick="Cancel"
                             disabled="@IsBusy">
+
                         Cancel
+
                     </button>
 
                 </EditForm>
@@ -138,8 +173,7 @@
     }
     else
     {
-        <!-- SHOW ONLY EMPLOYEE LIST -->
-
+        <!-- EMPLOYEE LIST -->
         @if (employees == null)
         {
             <p>Loading employees...</p>
@@ -166,26 +200,36 @@
                     </thead>
 
                     <tbody>
+
                         @foreach (var item in employees)
                         {
                             <tr @key="item.Id">
+
                                 <td>@item.Name</td>
                                 <td>@item.Email</td>
                                 <td>@item.Department</td>
 
                                 <td>
+
                                     <button class="btn btn-sm btn-warning me-2"
                                             @onclick="() => EditEmployee(item)">
+
                                         Edit
+
                                     </button>
 
                                     <button class="btn btn-sm btn-danger"
                                             @onclick="() => DeleteEmployee(item.Id)">
+
                                         Delete
+
                                     </button>
+
                                 </td>
+
                             </tr>
                         }
+
                     </tbody>
 
                 </table>

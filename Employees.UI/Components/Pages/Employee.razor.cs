@@ -276,6 +276,11 @@ namespace Employees.UI.Components.Pages
                 "/login",
                 forceLoad: true);
         }
+
+        private void OpenPendingLeaves()
+        {
+            Navigation.NavigateTo("/manage-leaves");
+        }
     }
 }
 

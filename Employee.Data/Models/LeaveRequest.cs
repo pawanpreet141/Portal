@@ -30,4 +30,3 @@ namespace Employee.Data.Models
         public Employee1? Employee { get; set; }
     }
 }
-

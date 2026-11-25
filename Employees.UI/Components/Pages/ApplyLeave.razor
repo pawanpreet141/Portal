@@ -1,0 +1,144 @@
+﻿@page "/apply-leave"
+@layout Employees.UI.Components.Layout.Layout
+
+@using Employees.UI.Models
+@using Employees.UI.Services
+
+@inject LeaveService LeaveService
+@inject UserSession UserSession
+
+<PageTitle>Apply Leave</PageTitle>
+
+<div class="container mt-4">
+
+    <div class="card shadow p-4">
+
+        <h3 class="mb-3">Apply For Leave</h3>
+
+        <div class="alert alert-info">
+            User ID: @UserSession.UserId
+            <br />
+            User Role: '@UserSession.Role'
+            <br />
+            Logged In: @UserSession.IsLoggedIn
+        </div>
+
+        <EditForm Model="@request"
+                  OnValidSubmit="SubmitLeave">
+
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label class="form-label">Leave Type</label>
+
+                <InputSelect class="form-select"
+                             @bind-Value="request.LeaveType">
+
+                    <option value="">Select Leave Type</option>
+                    <option value="Casual">Casual Leave</option>
+                    <option value="Sick">Sick Leave</option>
+                    <option value="Annual">Annual Leave</option>
+                    <option value="Emergency">Emergency Leave</option>
+
+                </InputSelect>
+
+                <ValidationMessage For="@(() => request.LeaveType)" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">From Date</label>
+
+                <InputDate class="form-control"
+                           @bind-Value="request.FromDate" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">To Date</label>
+
+                <InputDate class="form-control"
+                           @bind-Value="request.ToDate" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Reason</label>
+
+                <InputTextArea class="form-control"
+                               rows="4"
+                               @bind-Value="request.Reason" />
+
+                <ValidationMessage For="@(() => request.Reason)" />
+            </div>
+
+            <button type="submit"
+                    class="btn btn-primary"
+                    disabled="@isSubmitting">
+
+                @(isSubmitting ? "Submitting..." : "Submit Leave")
+
+            </button>
+
+        </EditForm>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert @(success ? "alert-success" : "alert-danger") mt-3">
+                @message
+            </div>
+        }
+
+    </div>
+
+</div>
+
+@code {
+    private ApplyLeaveRequest request = new();
+
+    private string message = "";
+
+    private bool success;
+    private bool isSubmitting;
+
+    private async Task SubmitLeave()
+    {
+        if (isSubmitting)
+            return;
+
+        message = "";
+
+        if (request.FromDate.Date < DateTime.Today)
+        {
+            message = "From date cannot be in the past.";
+            return;
+        }
+
+        if (request.ToDate.Date < request.FromDate.Date)
+        {
+            message = "To date cannot be earlier than From date.";
+            return;
+        }
+
+        isSubmitting = true;
+
+        try
+        {
+            var result = await LeaveService.ApplyLeaveAsync(request);
+
+            success = result.Success;
+            message = result.Message;
+
+            if (result.Success)
+                request = new ApplyLeaveRequest();
+        }
+        catch (Exception ex)
+        {
+            success = false;
+            message = ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}
+

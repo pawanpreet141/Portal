@@ -46,6 +46,8 @@ builder.Services.AddScoped<AuthenticationStateProvider>(
 
 builder.Services.AddAuthorizationCore();
 
+builder.Services.AddScoped<LeaveService>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

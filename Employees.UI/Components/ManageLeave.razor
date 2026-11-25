@@ -1,0 +1,332 @@
+﻿@page "/manage-leaves"
+@rendermode InteractiveServer
+
+@using Employee.UI.Models
+@using Employees.UI.Services
+
+@inject LeaveService LeaveService
+@inject UserSession UserSession
+@inject NavigationManager Navigation
+
+<PageTitle>Manage Leave Requests</PageTitle>
+
+<div class="container mt-4">
+
+    <div class="card shadow">
+
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+
+            <h3 class="mb-0">Pending Leave Requests</h3>
+
+            <button class="btn btn-light btn-sm"
+                    @onclick="GoBack">
+                Back to Dashboard
+            </button>
+
+        </div>
+
+        <div class="card-body">
+
+            @if (!UserSession.IsLoggedIn)
+            {
+                <div class="alert alert-warning">
+                    Please login first.
+                </div>
+            }
+            else if (!IsAuthorized)
+            {
+                <div class="alert alert-danger">
+                    Only HR and Technical users can manage leave requests.
+                </div>
+            }
+            else if (isLoading)
+            {
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary"></div>
+                    <p>Loading pending leave requests...</p>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    @errorMessage
+                </div>
+
+                <button class="btn btn-primary"
+                        @onclick="LoadLeaves">
+                    Try Again
+                </button>
+            }
+            else if (leaves.Count == 0)
+            {
+                <div class="alert alert-info">
+                    No pending leave requests found.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+
+                    <table class="table table-bordered table-hover align-middle">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>Leave ID</th>
+                                <th>Employee ID</th>
+                                <th>Leave Type</th>
+                                <th>From Date</th>
+                                <th>To Date</th>
+                                <th>Reason</th>
+                                <th>Applied Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var leave in leaves)
+                            {
+                                <tr @key="leave.Id">
+
+                                    <td>@leave.Id</td>
+
+                                    <td>@leave.EmployeeId</td>
+
+                                    <td>@leave.LeaveType</td>
+
+                                    <td>
+                                        @leave.FromDate.ToString("dd-MM-yyyy")
+                                    </td>
+
+                                    <td>
+                                        @leave.ToDate.ToString("dd-MM-yyyy")
+                                    </td>
+
+                                    <td>@leave.Reason</td>
+
+                                    <td>
+                                        @leave.AppliedDate.ToString("dd-MM-yyyy")
+                                    </td>
+
+                                    <td>
+
+                                        <button class="btn btn-success btn-sm mb-1"
+                                                disabled="@isProcessing"
+                                                @onclick="() => ApproveLeave(leave.Id)">
+
+                                            <i class="bi bi-check-circle"></i>
+                                            Approve
+
+                                        </button>
+
+                                        <button class="btn btn-danger btn-sm mb-1"
+                                                disabled="@isProcessing"
+                                                @onclick="() => SelectReject(leave.Id)">
+
+                                            <i class="bi bi-x-circle"></i>
+                                            Reject
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+
+                                @if (rejectingLeaveId == leave.Id)
+                                {
+                                    <tr>
+                                        <td colspan="8">
+
+                                            <div class="card p-3">
+
+                                                <label class="form-label">
+                                                    Rejection Reason
+                                                </label>
+
+                                                <InputTextArea class="form-control"
+                                                               rows="2"
+                                                               @bind-Value="rejectionReason" />
+
+                                                <div class="mt-2">
+
+                                                    <button class="btn btn-danger me-2"
+                                                            disabled="@isProcessing"
+                                                            @onclick="() => RejectLeave(leave.Id)">
+
+                                                        Confirm Rejection
+
+                                                    </button>
+
+                                                    <button class="btn btn-secondary"
+                                                            @onclick="CancelReject">
+
+                                                        Cancel
+
+                                                    </button>
+
+                                                </div>
+
+                                            </div>
+
+                                        </td>
+                                    </tr>
+                                }
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(message))
+            {
+                <div class="alert @(isSuccess ? "alert-success" : "alert-danger") mt-3">
+                    @message
+                </div>
+            }
+
+        </div>
+    </div>
+
+</div>
+
+@code {
+
+    private List<LeaveRequest> leaves = new();
+
+    private bool isLoading = true;
+    private bool isProcessing;
+    private bool isSuccess;
+
+    private string message = "";
+    private string errorMessage = "";
+
+    private int? rejectingLeaveId;
+    private string rejectionReason = "";
+
+    private bool IsAuthorized =>
+        string.Equals(UserSession.Role?.Trim(), "HR",
+            StringComparison.OrdinalIgnoreCase)
+        ||
+        string.Equals(UserSession.Role?.Trim(), "Technical",
+            StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!UserSession.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (!IsAuthorized)
+        {
+            errorMessage = "You are not authorized to manage leaves.";
+            isLoading = false;
+            return;
+        }
+
+        await LoadLeaves();
+    }
+
+    private async Task LoadLeaves()
+    {
+        isLoading = true;
+        errorMessage = "";
+        message = "";
+
+        try
+        {
+            leaves = await LeaveService.GetPendingLeavesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Unable to load leave requests: " + ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ApproveLeave(int id)
+    {
+        await ReviewLeave(id, "Approved", null);
+    }
+
+    private void SelectReject(int id)
+    {
+        rejectingLeaveId = id;
+        rejectionReason = "";
+        message = "";
+    }
+
+    private void CancelReject()
+    {
+        rejectingLeaveId = null;
+        rejectionReason = "";
+    }
+
+    private async Task RejectLeave(int id)
+    {
+        if (string.IsNullOrWhiteSpace(rejectionReason))
+        {
+            message = "Please enter a rejection reason.";
+            isSuccess = false;
+            return;
+        }
+
+        await ReviewLeave(id, "Rejected", rejectionReason);
+    }
+
+    private async Task ReviewLeave(
+        int id,
+        string status,
+        string? reason)
+    {
+        if (isProcessing)
+            return;
+
+        isProcessing = true;
+        message = "";
+
+        try
+        {
+            var request = new ReviewLeaveRequest
+            {
+                Status = status,
+                RejectionReason = reason
+            };
+
+            var result = await LeaveService.ReviewLeaveAsync(
+                id, request);
+
+            isSuccess = result.Success;
+            message = result.Message;
+
+            if (result.Success)
+            {
+                leaves.RemoveAll(x => x.Id == id);
+                rejectingLeaveId = null;
+                rejectionReason = "";
+            }
+        }
+        catch (Exception ex)
+        {
+            isSuccess = false;
+            message = ex.Message;
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/employees");
+    }
+}
+

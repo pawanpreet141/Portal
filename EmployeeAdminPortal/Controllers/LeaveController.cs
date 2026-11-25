@@ -1,5 +1,4 @@
-﻿
-using Employee.API.DTO;
+﻿using Employee.API.DTO;
 using Employee.API.DTOs;
 using Employee.BusinessLogic;
 using Microsoft.AspNetCore.Authorization;
@@ -150,4 +149,5 @@ namespace Employee.API.Controllers
         }
     }
 }
+
 
