@@ -1,6 +1,7 @@
 ﻿@page "/my-leaves"
 @layout Employees.UI.Components.Layout.Layout
 @rendermode InteractiveServer
+
 @using Employee.UI.Models
 @using Employees.UI.Services
 
@@ -16,17 +17,15 @@
 
         <div class="card-header bg-primary text-white">
             <h3 class="mb-0">My Leave Requests</h3>
+            <small>Role: @UserSession.Role</small>
         </div>
 
         <div class="card-body">
 
-            @if (!UserSession.IsLoggedIn ||
-                 !string.Equals(UserSession.Role?.Trim(),
-                 "Employee",
-                 StringComparison.OrdinalIgnoreCase))
+            @if (!UserSession.IsLoggedIn || !IsAllowedRole)
             {
                 <div class="alert alert-warning">
-                    Please login using your employee account.
+                    Please login using a valid account.
                 </div>
             }
             else if (isLoading)
@@ -62,43 +61,59 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Leave ID</th>
+                                <th>Applicant ID</th>
                                 <th>Leave Type</th>
                                 <th>From Date</th>
                                 <th>To Date</th>
                                 <th>Reason</th>
                                 <th>Applied Date</th>
+                                <th>Assigned To</th>
                                 <th>Status</th>
                                 <th>Rejection Reason</th>
                             </tr>
                         </thead>
 
                         <tbody>
+
                             @foreach (var leave in leaves)
                             {
-                                <tr>
+                                <tr @key="leave.Id">
+
                                     <td>@leave.Id</td>
+
+                                    <td>
+                                        @(leave.EmployeeId?.ToString()
+                                          ?? leave.ApplicantUserId?.ToString()
+                                          ?? "-")
+                                    </td>
 
                                     <td>@leave.LeaveType</td>
 
-                                    <td>@leave.FromDate.ToString("dd-MM-yyyy")</td>
+                                    <td>
+                                        @leave.FromDate.ToString("dd-MM-yyyy")
+                                    </td>
 
-                                    <td>@leave.ToDate.ToString("dd-MM-yyyy")</td>
+                                    <td>
+                                        @leave.ToDate.ToString("dd-MM-yyyy")
+                                    </td>
 
                                     <td>@leave.Reason</td>
 
-                                    <td>@leave.AppliedDate.ToString("dd-MM-yyyy")</td>
+                                    <td>
+                                        @leave.AppliedDate.ToString("dd-MM-yyyy")
+                                    </td>
+
+                                    <td>@leave.AssignedToRole</td>
 
                                     <td>
-                                        @if (leave.Status.Equals(
-                                            "Approved",
+                                        @if (string.Equals(leave.Status, "Approved",
                                             StringComparison.OrdinalIgnoreCase))
                                         {
                                             <span class="badge bg-success">
                                                 Approved
                                             </span>
                                         }
-                                        else if (leave.Status.Equals(
-                                            "Rejected",
+                                        else if (string.Equals(leave.Status, "Rejected",
                                             StringComparison.OrdinalIgnoreCase))
                                         {
                                             <span class="badge bg-danger">
@@ -119,8 +134,10 @@
                                             ? "-"
                                             : leave.RejectionReason)
                                     </td>
+
                                 </tr>
                             }
+
                         </tbody>
 
                     </table>
@@ -132,7 +149,7 @@
                     @onclick="GoBack">
 
                 <i class="bi bi-arrow-left me-2"></i>
-                Back to Dashboard
+                Back
 
             </button>
 
@@ -149,6 +166,19 @@
 
     private string errorMessage = "";
 
+    // private bool IsAllowedRole =>
+    //     new[] { "Employee", "HR", "Technical" }
+    //         .Contains(
+    //             UserSession.Role?.Trim(),
+    //             StringComparer.OrdinalIgnoreCase);
+
+    private bool IsAllowedRole =>
+    new[] { "Employee", "HR", "Technical", "Manager" }
+        .Contains(
+            UserSession.Role?.Trim(),
+            StringComparer.OrdinalIgnoreCase);
+
+
     protected override async Task OnInitializedAsync()
     {
         if (!UserSession.IsLoggedIn)
@@ -157,10 +187,7 @@
             return;
         }
 
-        if (!string.Equals(
-            UserSession.Role?.Trim(),
-            "Employee",
-            StringComparison.OrdinalIgnoreCase))
+        if (!IsAllowedRole)
         {
             Navigation.NavigateTo("/login");
             return;
@@ -180,7 +207,8 @@
         }
         catch (Exception ex)
         {
-            errorMessage = "Unable to load leave requests: " + ex.Message;
+            errorMessage =
+                "Unable to load leave requests: " + ex.Message;
         }
         finally
         {
@@ -190,6 +218,29 @@
 
     private void GoBack()
     {
-        Navigation.NavigateTo("/employee-dashboard");
+        var role = UserSession.Role?.Trim();
+
+        switch (role?.ToLowerInvariant())
+        {
+            case "employee":
+                Navigation.NavigateTo("/employee-dashboard");
+                break;
+
+            case "hr":
+                Navigation.NavigateTo("/employees");
+                break;
+
+            case "technical":
+                Navigation.NavigateTo("/employees");
+                break;
+
+            case "manager":
+                Navigation.NavigateTo("/manager-dashboard");
+                break;
+
+            default:
+                Navigation.NavigateTo("/login");
+                break;
+        }
     }
 }

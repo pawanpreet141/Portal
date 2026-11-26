@@ -1,5 +1,4 @@
-﻿
-using Employee.Data.Models;
+﻿using Employee.Data.Models;
 
 namespace Employee.BusinessLogic
 {
@@ -13,7 +12,7 @@ namespace Employee.BusinessLogic
         Task<List<LeaveRequest>> GetMyLeavesAsync(
             int employeeId);
 
-        // Get pending leaves for HR or Technical
+        // Get pending leaves for HR, Technical or Manager
         Task<List<LeaveRequest>> GetPendingLeavesAsync(
             string assignedToRole);
 
@@ -21,10 +20,18 @@ namespace Employee.BusinessLogic
         Task<LeaveRequest?> GetLeaveByIdAsync(
             int id);
 
-
         // Update leave status
         Task UpdateLeaveAsync(
-    LeaveRequest leaveRequest);
+            LeaveRequest leaveRequest);
+
+        // Get HR or Technical login account
+        Task<User?> GetUserByIdAsync(
+            int userId);
+
+        Task<List<LeaveRequest>> GetMyLeavesByUserIdAsync(
+    int userId);
     }
 }
+
+
 

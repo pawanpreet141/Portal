@@ -72,13 +72,12 @@ namespace Employees.UI.Components.Pages
                 AuthProvider.NotifyUserLogin();
 
 
-
                 var role = result.Role?.Trim();
 
                 if (string.Equals(role, "Admin",
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    Navigation.NavigateTo("/create-manager");
+                    Navigation.NavigateTo("/admin-dashboard");
                 }
                 else if (string.Equals(role, "Manager",
                     StringComparison.OrdinalIgnoreCase))
@@ -88,13 +87,11 @@ namespace Employees.UI.Components.Pages
                 else if (string.Equals(role, "HR",
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    //Navigation.NavigateTo("/signup");
                     Navigation.NavigateTo("/employees");
                 }
                 else if (string.Equals(role, "Technical",
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    //Navigation.NavigateTo("/signup");
                     Navigation.NavigateTo("/employees");
                 }
                 else if (string.Equals(role, "Employee",

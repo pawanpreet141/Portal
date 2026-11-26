@@ -13,48 +13,214 @@
 
 <div class="container mt-4">
 
-    <h2>Manager Dashboard</h2>
-    <p>Welcome, @Session.Name</p>
+    <!-- DASHBOARD HEADER -->
 
-    <!-- Create HR and Technical -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
 
-    <div class="row g-3 mt-3">
+        <div>
+            <h2>Manager Dashboard</h2>
+            <p class="mb-0">Welcome, @Session.Name</p>
+        </div>
+
+        <button class="btn btn-outline-danger"
+                @onclick="Logout">
+            <i class="bi bi-box-arrow-right me-2"></i>
+            Logout
+        </button>
+
+    </div>
+
+    <!-- MANAGER LEAVE OPTIONS -->
+
+    <h4 class="mt-3 mb-3">Leave Management</h4>
+
+    <div class="row g-3">
+
+        <!-- APPLY LEAVE -->
 
         <div class="col-md-6">
-            <div class="card shadow h-100">
+
+            <div class="card shadow h-100 border-primary">
+
                 <div class="card-body">
-                    <h4>HR</h4>
-                    <p>Create an HR account.</p>
+
+                    <h4>
+                        <i class="bi bi-calendar-plus text-primary me-2"></i>
+                        Apply Leave
+                    </h4>
+
+                    <p>
+                        Apply for leave and send your request
+                        to Admin for approval.
+                    </p>
 
                     <button class="btn btn-primary w-100"
-                            @onclick="CreateHR">
-                        Create HR
+                            @onclick="ApplyLeave">
+
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Apply Leave
+
                     </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- MY LEAVES -->
+
+@*         <div class="col-md-6">
+
+            <div class="card shadow h-100 border-success">
+
+                <div class="card-body">
+
+                    <h4>
+                        <i class="bi bi-calendar2-check text-success me-2"></i>
+                        My Leaves
+                    </h4>
+
+                    <p>
+                        View your leave applications,
+                        approval status and rejection reasons.
+                    </p>
+
+                    <button class="btn btn-success w-100"
+                            @onclick="MyLeaves">
+
+                        <i class="bi bi-eye me-2"></i>
+                        View My Leaves
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div> *@
+
+        <div class="col-md-6 mt-3">
+            <div class="card shadow h-100 border-success">
+                <div class="card-body">
+
+                    <h4>
+                        <i class="bi bi-calendar-check me-2"></i>
+                        My Leaves
+                    </h4>
+
+                    <p>
+                        View your applied leave requests and approval status.
+                    </p>
+
+                    <button class="btn btn-success w-100"
+                            @onclick="ViewMyLeaves">
+
+                        View My Leaves
+
+                    </button>
+
                 </div>
             </div>
         </div>
 
-        <div class="col-md-6">
-            <div class="card shadow h-100">
-                <div class="card-body">
-                    <h4>Technical</h4>
-                    <p>Create a Technical account.</p>
+        <!-- PENDING LEAVES -->
 
-                    <button class="btn btn-success w-100"
-                            @onclick="CreateTechnical">
-                        Create Technical
+        <div class="col-md-6">
+
+            <div class="card shadow h-100 border-warning">
+
+                <div class="card-body">
+
+                    <h4>
+                        <i class="bi bi-calendar-check text-warning me-2"></i>
+                        Pending Leaves
+                    </h4>
+
+                    <p>
+                        View HR and Technical leave requests.
+                        Approve or reject pending applications.
+                    </p>
+
+                    <button class="btn btn-warning w-100"
+                            @onclick="OpenPendingLeaves">
+
+                        <i class="bi bi-eye me-2"></i>
+                        View Pending Leaves
+
                     </button>
+
                 </div>
+
             </div>
+
         </div>
 
     </div>
 
+    <!-- CREATE HR AND TECHNICAL -->
+
+    <h4 class="mt-4 mb-3">Account Management</h4>
+
+    <div class="row g-3">
+
+        <div class="col-md-6">
+
+            <div class="card shadow h-100">
+
+                <div class="card-body">
+
+                    <h4>HR</h4>
+
+                    <p>Create an HR account.</p>
+
+                    <button class="btn btn-primary w-100"
+                            @onclick="CreateHR">
+
+                        Create HR
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-6">
+
+            <div class="card shadow h-100">
+
+                <div class="card-body">
+
+                    <h4>Technical</h4>
+
+                    <p>Create a Technical account.</p>
+
+                    <button class="btn btn-success w-100"
+                            @onclick="CreateTechnical">
+
+                        Create Technical
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- LOADING -->
     @if (IsLoading)
     {
         <div class="text-center mt-4">
+
             <div class="spinner-border text-primary"></div>
+
             <p>Loading dashboard...</p>
+
         </div>
     }
     else if (!string.IsNullOrEmpty(ErrorMessage))
@@ -65,55 +231,78 @@
     }
     else if (Dashboard != null)
     {
-        <!-- Dashboard Statistics -->
+        <!-- DASHBOARD STATISTICS -->
 
         <h4 class="mt-4">Dashboard Statistics</h4>
 
         <div class="row g-3 mt-2">
 
             <div class="col-md-4">
+
                 <div class="card shadow border-primary">
+
                     <div class="card-body">
+
                         <h5>Total HR Created</h5>
+
                         <h2 class="text-primary">
                             @Dashboard.TotalHR
                         </h2>
+
                     </div>
+
                 </div>
+
             </div>
 
             <div class="col-md-4">
+
                 <div class="card shadow border-success">
+
                     <div class="card-body">
+
                         <h5>Total Technical Created</h5>
+
                         <h2 class="text-success">
                             @Dashboard.TotalTechnical
                         </h2>
+
                     </div>
+
                 </div>
+
             </div>
 
             <div class="col-md-4">
+
                 <div class="card shadow border-warning">
+
                     <div class="card-body">
+
                         <h5>Total Created</h5>
+
                         <h2 class="text-warning">
                             @Dashboard.TotalCreated
                         </h2>
+
                     </div>
+
                 </div>
+
             </div>
 
         </div>
 
-        <!-- HR Users -->
+        <!-- HR USERS -->
 
         <div class="card shadow mt-4">
 
             <div class="card-header bg-primary text-white">
+
                 <h5 class="mb-0">
                     HR Users Created by @Session.Name
                 </h5>
+
             </div>
 
             <div class="card-body">
@@ -123,12 +312,14 @@
                     <table class="table table-bordered table-hover">
 
                         <thead class="table-light">
+
                             <tr>
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Role</th>
                             </tr>
+
                         </thead>
 
                         <tbody>
@@ -161,16 +352,19 @@
                 </div>
 
             </div>
+
         </div>
 
-        <!-- Technical Users -->
+        <!-- TECHNICAL USERS -->
 
-        <div class="card shadow mt-4">
+        <div class="card shadow mt-4 mb-4">
 
             <div class="card-header bg-success text-white">
+
                 <h5 class="mb-0">
                     Technical Users Created by @Session.Name
                 </h5>
+
             </div>
 
             <div class="card-body">
@@ -180,12 +374,14 @@
                     <table class="table table-bordered table-hover">
 
                         <thead class="table-light">
+
                             <tr>
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Role</th>
                             </tr>
+
                         </thead>
 
                         <tbody>
@@ -218,15 +414,10 @@
                 </div>
 
             </div>
+
         </div>
+
     }
-
-    <!-- Logout -->
-
-    <button class="btn btn-outline-danger mt-4"
-            @onclick="Logout">
-        Logout
-    </button>
 
 </div>
 
@@ -281,6 +472,23 @@
         }
     }
 
+    // APPLY LEAVE TO ADMIN
+    private void ApplyLeave()
+    {
+        Navigation.NavigateTo("/apply-leave");
+    }
+
+    // VIEW OWN LEAVE HISTORY
+    // private void MyLeaves()
+    // {
+    //     Navigation.NavigateTo("/my-leave");
+    // }
+
+    private void ViewMyLeaves()
+    {
+        Navigation.NavigateTo("/my-leaves");
+    }
+
     private void CreateHR()
     {
         Navigation.NavigateTo("/create-hr");
@@ -291,10 +499,15 @@
         Navigation.NavigateTo("/create-technical");
     }
 
+    private void OpenPendingLeaves()
+    {
+        Navigation.NavigateTo("/manage-leaves");
+    }
+
     private void Logout()
     {
         Session.Logout();
-        Navigation.NavigateTo("/manager-login");
 
+        Navigation.NavigateTo("/manager-login");
     }
 }

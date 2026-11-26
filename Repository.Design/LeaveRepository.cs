@@ -13,7 +13,7 @@ namespace Employee.BusinessLogic
             _context = context;
         }
 
-        // Apply for leave
+        // APPLY FOR LEAVE
         public async Task<LeaveRequest> ApplyLeaveAsync(
             LeaveRequest leaveRequest)
         {
@@ -24,30 +24,33 @@ namespace Employee.BusinessLogic
             return leaveRequest;
         }
 
-        // Get employee's leave history
+        // GET EMPLOYEE LEAVE HISTORY
         public async Task<List<LeaveRequest>> GetMyLeavesAsync(
             int employeeId)
         {
             return await _context.LeaveRequests
+                .Include(x => x.Employee)
                 .Where(x => x.EmployeeId == employeeId)
                 .OrderByDescending(x => x.AppliedDate)
                 .ToListAsync();
         }
 
-        // Get pending leave requests for HR or Technical
+        // GET PENDING LEAVES FOR HR, TECHNICAL,
+        // MANAGER AND ADMIN
         public async Task<List<LeaveRequest>> GetPendingLeavesAsync(
             string assignedToRole)
         {
             return await _context.LeaveRequests
                 .Include(x => x.Employee)
                 .Where(x =>
-                    x.AssignedToRole == assignedToRole &&
-                    x.Status == "Pending")
+                    x.AssignedToRole.ToLower() ==
+                        assignedToRole.ToLower() &&
+                    x.Status.ToLower() == "pending")
                 .OrderByDescending(x => x.AppliedDate)
                 .ToListAsync();
         }
 
-        // Get leave request by ID
+        // GET LEAVE REQUEST BY ID
         public async Task<LeaveRequest?> GetLeaveByIdAsync(
             int id)
         {
@@ -55,13 +58,33 @@ namespace Employee.BusinessLogic
                 .FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        // Update leave request
+        // UPDATE LEAVE STATUS
         public async Task UpdateLeaveAsync(
-    LeaveRequest leaveRequest)
+            LeaveRequest leaveRequest)
         {
             _context.LeaveRequests.Update(leaveRequest);
 
             await _context.SaveChangesAsync();
         }
+
+        // GET USER ACCOUNT BY ID
+        // Supports HR, Technical, Manager and Admin
+        public async Task<User?> GetUserByIdAsync(
+            int userId)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(x => x.Id == userId);
+        }
+
+        // GET HR, TECHNICAL AND MANAGER LEAVE HISTORY
+        public async Task<List<LeaveRequest>> GetMyLeavesByUserIdAsync(
+            int userId)
+        {
+            return await _context.LeaveRequests
+                .Where(x => x.ApplicantUserId == userId)
+                .OrderByDescending(x => x.AppliedDate)
+                .ToListAsync();
+        }
     }
 }
+

@@ -281,6 +281,16 @@ namespace Employees.UI.Components.Pages
         {
             Navigation.NavigateTo("/manage-leaves");
         }
+
+        private void ApplyLeave()
+        {
+            Navigation.NavigateTo("/apply-leave");
+        }
+
+        private void MyLeaves()
+        {
+            Navigation.NavigateTo("/my-leaves");
+        }
     }
 }
 

@@ -1,5 +1,4 @@
-﻿
-using Employee.UI.Models;
+﻿using Employee.UI.Models;
 using Employees.UI.Models;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -15,14 +14,39 @@ namespace Employees.UI.Services
             _http = http;
         }
 
-        // EMPLOYEE: APPLY FOR LEAVE
+        // EMPLOYEE: APPLY FOR LEAVE TO HR OR TECHNICAL
         public async Task<ApiResponse> ApplyLeaveAsync(
+            ApplyLeaveRequest request)
+        {
+            return await PostLeaveAsync(
+                "api/Leave/apply", request);
+        }
+
+        // HR / TECHNICAL: APPLY FOR LEAVE TO MANAGER
+        public async Task<ApiResponse> ApplyLeaveForManagerAsync(
+            ApplyLeaveRequest request)
+        {
+            return await PostLeaveAsync(
+                "api/Leave/apply-for-manager", request);
+        }
+
+        // MANAGER: APPLY FOR LEAVE TO ADMIN
+        public async Task<ApiResponse> ApplyLeaveForAdminAsync(
+            ApplyLeaveRequest request)
+        {
+            return await PostLeaveAsync(
+                "api/Leave/apply-for-admin", request);
+        }
+
+        // COMMON METHOD FOR APPLYING LEAVE
+        private async Task<ApiResponse> PostLeaveAsync(
+            string endpoint,
             ApplyLeaveRequest request)
         {
             try
             {
                 using var response = await _http.PostAsync(
-                    "api/Leave/apply", request);
+                    endpoint, request);
 
                 string message = await ReadMessage(response);
 
@@ -44,7 +68,8 @@ namespace Employees.UI.Services
             }
         }
 
-        // EMPLOYEE: GET OWN LEAVE REQUESTS
+        // EMPLOYEE / HR / TECHNICAL / MANAGER:
+        // GET OWN LEAVE REQUESTS
         public async Task<List<LeaveRequest>> GetMyLeavesAsync()
         {
             var result = await _http.GetAsync<List<LeaveRequest>>(
@@ -53,7 +78,8 @@ namespace Employees.UI.Services
             return result ?? new List<LeaveRequest>();
         }
 
-        // HR / TECHNICAL: GET PENDING LEAVES
+        // HR / TECHNICAL / MANAGER / ADMIN:
+        // GET PENDING LEAVES
         public async Task<List<LeaveRequest>> GetPendingLeavesAsync()
         {
             var result = await _http.GetAsync<List<LeaveRequest>>(
@@ -62,7 +88,7 @@ namespace Employees.UI.Services
             return result ?? new List<LeaveRequest>();
         }
 
-        // HR / TECHNICAL: APPROVE OR REJECT LEAVE
+        // APPROVE OR REJECT LEAVE
         public async Task<ApiResponse> ReviewLeaveAsync(
             int id,
             ReviewLeaveRequest request)
@@ -92,6 +118,7 @@ namespace Employees.UI.Services
             }
         }
 
+        // READ API RESPONSE
         private static async Task<string> ReadMessage(
             HttpResponseMessage response)
         {
@@ -122,4 +149,3 @@ namespace Employees.UI.Services
         }
     }
 }
-

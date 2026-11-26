@@ -1,11 +1,13 @@
 ﻿@page "/apply-leave"
 @layout Employees.UI.Components.Layout.Layout
+@rendermode InteractiveServer
 
 @using Employees.UI.Models
 @using Employees.UI.Services
 
 @inject LeaveService LeaveService
 @inject UserSession UserSession
+@inject NavigationManager Navigation
 
 <PageTitle>Apply Leave</PageTitle>
 
@@ -15,13 +17,25 @@
 
         <h3 class="mb-3">Apply For Leave</h3>
 
-        <div class="alert alert-info">
-            User ID: @UserSession.UserId
-            <br />
-            User Role: '@UserSession.Role'
-            <br />
-            Logged In: @UserSession.IsLoggedIn
-        </div>
+        @if (UserSession.IsLoggedIn)
+        {
+            <div class="alert alert-info">
+                <strong>User ID:</strong> @UserSession.UserId
+                <br />
+                <strong>Role:</strong> @UserSession.Role
+                <br />
+                <strong>Leave Approver:</strong> @ApproverRole
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert @(success
+                 ? "alert-success"
+                 : "alert-danger")">
+                @message
+            </div>
+        }
 
         <EditForm Model="@request"
                   OnValidSubmit="SubmitLeave">
@@ -74,24 +88,20 @@
                     class="btn btn-primary"
                     disabled="@isSubmitting">
 
-                @(isSubmitting ? "Submitting..." : "Submit Leave")
+                @(isSubmitting
+                    ? "Submitting..."
+                    : "Submit Leave")
 
             </button>
 
         </EditForm>
-
-        @if (!string.IsNullOrEmpty(message))
-        {
-            <div class="alert @(success ? "alert-success" : "alert-danger") mt-3">
-                @message
-            </div>
-        }
 
     </div>
 
 </div>
 
 @code {
+
     private ApplyLeaveRequest request = new();
 
     private string message = "";
@@ -99,6 +109,42 @@
     private bool success;
     private bool isSubmitting;
 
+    // DETERMINE LEAVE APPROVER
+    private string ApproverRole =>
+        UserSession.Role?.Trim().ToLower() switch
+        {
+            "employee" => "HR / Technical",
+            "hr" => "Manager",
+            "technical" => "Manager",
+            "manager" => "Admin",
+            _ => "Not available"
+        };
+
+
+    // CHECK LOGIN AND ROLE
+    protected override void OnInitialized()
+    {
+        if (!UserSession.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var role = UserSession.Role?.Trim();
+
+        if (role != null &&
+            (role.Equals("Employee", StringComparison.OrdinalIgnoreCase) ||
+             role.Equals("HR", StringComparison.OrdinalIgnoreCase) ||
+             role.Equals("Technical", StringComparison.OrdinalIgnoreCase) ||
+             role.Equals("Manager", StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        Navigation.NavigateTo("/login");
+    }
+
+    // SUBMIT LEAVE
     private async Task SubmitLeave()
     {
         if (isSubmitting)
@@ -106,15 +152,33 @@
 
         message = "";
 
+        // VALIDATE FROM DATE
         if (request.FromDate.Date < DateTime.Today)
         {
             message = "From date cannot be in the past.";
+            success = false;
             return;
         }
 
+        // VALIDATE TO DATE
         if (request.ToDate.Date < request.FromDate.Date)
         {
             message = "To date cannot be earlier than From date.";
+            success = false;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.LeaveType))
+        {
+            message = "Please select leave type.";
+            success = false;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            message = "Please enter leave reason.";
+            success = false;
             return;
         }
 
@@ -122,13 +186,55 @@
 
         try
         {
-            var result = await LeaveService.ApplyLeaveAsync(request);
+            ApiResponse result;
+
+            var role = UserSession.Role?.Trim();
+
+            // EMPLOYEE APPLIES TO HR OR TECHNICAL
+            if (string.Equals(
+                role, "Employee",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                result = await LeaveService.ApplyLeaveAsync(
+                    request);
+            }
+
+            // HR OR TECHNICAL APPLIES TO MANAGER
+            else if (
+                string.Equals(
+                    role, "HR",
+                    StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(
+                    role, "Technical",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                result = await LeaveService.ApplyLeaveForManagerAsync(
+                    request);
+            }
+
+            // MANAGER APPLIES TO ADMIN
+            else if (string.Equals(
+                role, "Manager",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                result = await LeaveService.ApplyLeaveForAdminAsync(
+                    request);
+            }
+
+            else
+            {
+                message = "Unauthorized user role.";
+                success = false;
+                return;
+            }
 
             success = result.Success;
             message = result.Message;
 
             if (result.Success)
+            {
                 request = new ApplyLeaveRequest();
+            }
         }
         catch (Exception ex)
         {
@@ -141,4 +247,3 @@
         }
     }
 }
-

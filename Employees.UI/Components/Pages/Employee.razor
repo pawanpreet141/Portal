@@ -37,6 +37,34 @@
 
         <div class="d-flex gap-2">
 
+
+            @if (UserSession.IsLoggedIn &&
+    (UserSession.Role?.Equals(
+        "HR",
+        StringComparison.OrdinalIgnoreCase) == true ||
+     UserSession.Role?.Equals(
+        "Technical",
+        StringComparison.OrdinalIgnoreCase) == true))
+            {
+                <div class="d-flex gap-2 mt-3">
+
+                    <button class="btn btn-primary"
+                            @onclick="ApplyLeave">
+                        <i class="bi bi-calendar-plus me-2"></i>
+                        Apply Leave
+                    </button>
+
+                    <button class="btn btn-success"
+                            @onclick="MyLeaves">
+                        <i class="bi bi-calendar-check me-2"></i>
+                        My Leaves
+                    </button>
+
+                </div>
+            }
+
+
+
             @if (UserSession.Role == "HR" ||
                  UserSession.Role == "Technical")
             {

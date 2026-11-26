@@ -1,4 +1,5 @@
 ﻿@page "/manage-leaves"
+@layout Employees.UI.Components.Layout.Layout
 @rendermode InteractiveServer
 
 @using Employee.UI.Models
@@ -16,7 +17,9 @@
 
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
 
-            <h3 class="mb-0">Pending Leave Requests</h3>
+            <h3 class="mb-0">
+                @UserSession.Role - Pending Leave Requests
+            </h3>
 
             <button class="btn btn-light btn-sm"
                     @onclick="GoBack">
@@ -36,7 +39,7 @@
             else if (!IsAuthorized)
             {
                 <div class="alert alert-danger">
-                    Only HR and Technical users can manage leave requests.
+                    You are not authorized to manage leave requests.
                 </div>
             }
             else if (isLoading)
@@ -73,11 +76,13 @@
                             <tr>
                                 <th>Leave ID</th>
                                 <th>Employee ID</th>
+                                <th>Applicant User ID</th>
                                 <th>Leave Type</th>
                                 <th>From Date</th>
                                 <th>To Date</th>
                                 <th>Reason</th>
                                 <th>Applied Date</th>
+                                <th>Assigned To</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -90,7 +95,13 @@
 
                                     <td>@leave.Id</td>
 
-                                    <td>@leave.EmployeeId</td>
+                                    <td>
+                                        @(leave.EmployeeId?.ToString() ?? "-")
+                                    </td>
+
+                                    <td>
+                                        @(leave.ApplicantUserId?.ToString() ?? "-")
+                                    </td>
 
                                     <td>@leave.LeaveType</td>
 
@@ -108,13 +119,14 @@
                                         @leave.AppliedDate.ToString("dd-MM-yyyy")
                                     </td>
 
+                                    <td>@leave.AssignedToRole</td>
+
                                     <td>
 
                                         <button class="btn btn-success btn-sm mb-1"
                                                 disabled="@isProcessing"
                                                 @onclick="() => ApproveLeave(leave.Id)">
 
-                                            <i class="bi bi-check-circle"></i>
                                             Approve
 
                                         </button>
@@ -123,7 +135,6 @@
                                                 disabled="@isProcessing"
                                                 @onclick="() => SelectReject(leave.Id)">
 
-                                            <i class="bi bi-x-circle"></i>
                                             Reject
 
                                         </button>
@@ -135,7 +146,7 @@
                                 @if (rejectingLeaveId == leave.Id)
                                 {
                                     <tr>
-                                        <td colspan="8">
+                                        <td colspan="10">
 
                                             <div class="card p-3">
 
@@ -206,12 +217,13 @@
     private int? rejectingLeaveId;
     private string rejectionReason = "";
 
+    // HR, Technical, Manager and Admin authorization
+
     private bool IsAuthorized =>
-        string.Equals(UserSession.Role?.Trim(), "HR",
-            StringComparison.OrdinalIgnoreCase)
-        ||
-        string.Equals(UserSession.Role?.Trim(), "Technical",
-            StringComparison.OrdinalIgnoreCase);
+        new[] { "HR", "Technical", "Manager", "Admin" }
+        .Contains(
+            UserSession.Role?.Trim(),
+            StringComparer.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
@@ -231,6 +243,8 @@
         await LoadLeaves();
     }
 
+    // LOAD PENDING LEAVES
+
     private async Task LoadLeaves()
     {
         isLoading = true;
@@ -243,7 +257,8 @@
         }
         catch (Exception ex)
         {
-            errorMessage = "Unable to load leave requests: " + ex.Message;
+            errorMessage =
+                "Unable to load leave requests: " + ex.Message;
         }
         finally
         {
@@ -251,10 +266,14 @@
         }
     }
 
+    // APPROVE LEAVE
+
     private async Task ApproveLeave(int id)
     {
         await ReviewLeave(id, "Approved", null);
     }
+
+    // SELECT REJECTION
 
     private void SelectReject(int id)
     {
@@ -269,6 +288,8 @@
         rejectionReason = "";
     }
 
+    // REJECT LEAVE
+
     private async Task RejectLeave(int id)
     {
         if (string.IsNullOrWhiteSpace(rejectionReason))
@@ -280,6 +301,8 @@
 
         await ReviewLeave(id, "Rejected", rejectionReason);
     }
+
+    // COMMON APPROVE / REJECT METHOD
 
     private async Task ReviewLeave(
         int id,
@@ -309,6 +332,7 @@
             if (result.Success)
             {
                 leaves.RemoveAll(x => x.Id == id);
+
                 rejectingLeaveId = null;
                 rejectionReason = "";
             }
@@ -324,9 +348,30 @@
         }
     }
 
+    // BACK TO ROLE DASHBOARD
+
     private void GoBack()
     {
-        Navigation.NavigateTo("/employees");
+        var role = UserSession.Role?.Trim();
+
+        switch (role?.ToLowerInvariant())
+        {
+            case "hr":
+            case "technical":
+                Navigation.NavigateTo("/employees");
+                break;
+
+            case "manager":
+                Navigation.NavigateTo("/manager-dashboard");
+                break;
+
+            case "admin":
+                Navigation.NavigateTo("/admin-dashboard");
+                break;
+
+            default:
+                Navigation.NavigateTo("/login");
+                break;
+        }
     }
 }
-

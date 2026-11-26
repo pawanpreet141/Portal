@@ -5,26 +5,42 @@ namespace Employee.BusinessLogic
 {
     public interface ILeaveService
     {
-        // Employee applies for leave
+        // EMPLOYEE APPLIES FOR LEAVE TO HR OR TECHNICAL
         Task<LeaveRequest> ApplyLeaveAsync(
-          int loginUserId,
-          string leaveType,
-          DateTime fromDate,
-          DateTime toDate,
-          string reason);
+            int loginUserId,
+            string leaveType,
+            DateTime fromDate,
+            DateTime toDate,
+            string reason);
 
-        // Employee views own leave history
-        //Task<List<LeaveRequest>> GetMyLeavesAsync(
-        //    int employeeId);
-        Task<List<LeaveRequest>> GetMyLeavesAsync(int loginUserId);
+        // HR AND TECHNICAL APPLY FOR LEAVE TO MANAGER
+        Task<LeaveRequest> ApplyLeaveForManagerAsync(
+            int loginUserId,
+            string leaveType,
+            DateTime fromDate,
+            DateTime toDate,
+            string reason);
 
-        // HR or Technical views pending requests
+        // MANAGER APPLIES FOR LEAVE TO ADMIN
+        Task<LeaveRequest> ApplyLeaveForAdminAsync(
+            int loginUserId,
+            string leaveType,
+            DateTime fromDate,
+            DateTime toDate,
+            string reason);
+
+        // EMPLOYEE, HR, TECHNICAL AND MANAGER
+        // VIEW THEIR OWN LEAVE HISTORY
+        Task<List<LeaveRequest>> GetMyLeavesAsync(
+            int loginUserId);
+
+        // HR, TECHNICAL, MANAGER AND ADMIN
+        // VIEW THEIR ASSIGNED PENDING LEAVE REQUESTS
         Task<List<LeaveRequest>> GetPendingLeavesAsync(
             string approverRole);
 
-
-
-        // HR or Technical approves/rejects leave
+        // HR, TECHNICAL, MANAGER AND ADMIN
+        // APPROVE OR REJECT LEAVE
         Task<bool> ReviewLeaveAsync(
             int leaveId,
             string approverRole,
@@ -33,4 +49,3 @@ namespace Employee.BusinessLogic
             string? rejectionReason);
     }
 }
-

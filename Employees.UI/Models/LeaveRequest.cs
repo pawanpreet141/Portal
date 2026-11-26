@@ -4,7 +4,9 @@
     {
         public int Id { get; set; }
 
-        public int EmployeeId { get; set; }
+        public int? EmployeeId { get; set; }
+
+        public int? ApplicantUserId { get; set; }
 
         public string LeaveType { get; set; } = string.Empty;
 
@@ -25,5 +27,7 @@
         public DateTime? ReviewedDate { get; set; }
 
         public string? RejectionReason { get; set; }
+
+        public string? ReviewedRole { get; set; }
     }
 }

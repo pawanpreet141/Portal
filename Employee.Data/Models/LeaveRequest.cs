@@ -1,11 +1,14 @@
-﻿
-namespace Employee.Data.Models
+﻿namespace Employee.Data.Models
 {
     public class LeaveRequest
     {
         public int Id { get; set; }
 
-        public int EmployeeId { get; set; }
+        // Existing employee profile ID
+        public int? EmployeeId { get; set; }
+
+        // HR, Technical, or Manager login user ID
+        public int? ApplicantUserId { get; set; }
 
         public string LeaveType { get; set; } = string.Empty;
 
@@ -15,6 +18,7 @@ namespace Employee.Data.Models
 
         public string Reason { get; set; } = string.Empty;
 
+        // HR, Technical, Manager, or Admin
         public string AssignedToRole { get; set; } = string.Empty;
 
         public string Status { get; set; } = "Pending";
@@ -26,6 +30,8 @@ namespace Employee.Data.Models
         public DateTime? ReviewedDate { get; set; }
 
         public string? RejectionReason { get; set; }
+
+        public string? ReviewedRole { get; set; }
 
         public Employee1? Employee { get; set; }
     }

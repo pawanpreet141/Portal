@@ -19,7 +19,7 @@ namespace Employee.API.Controllers
             _leaveService = leaveService;
         }
 
-        // EMPLOYEE APPLIES FOR LEAVE
+        // EMPLOYEE APPLIES FOR LEAVE TO HR OR TECHNICAL
         [Authorize(Roles = "Employee")]
         [HttpPost("apply")]
         public async Task<IActionResult> ApplyLeave(
@@ -51,8 +51,46 @@ namespace Employee.API.Controllers
             }
         }
 
+        // HR AND TECHNICAL APPLY FOR LEAVE TO MANAGER
+        [Authorize(Roles = "HR,Technical")]
+        [HttpPost("apply-for-manager")]
+        public async Task<IActionResult> ApplyLeaveForManager(
+            [FromBody] ApplyLeaveRequest request)
+        {
+            var userId = GetUserId();
+
+            if (userId == null)
+                return Unauthorized("User ID not found.");
+
+            try
+            {
+                var result =
+                    await _leaveService.ApplyLeaveForManagerAsync(
+                        userId.Value,
+                        request.LeaveType,
+                        request.FromDate,
+                        request.ToDate,
+                        request.Reason);
+
+                return Ok(new
+                {
+                    message = "Leave applied successfully and sent to Manager.",
+                    leave = result
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         // EMPLOYEE VIEWS OWN LEAVES
-        [Authorize(Roles = "Employee")]
+        //[Authorize(Roles = "Employee,HR,Technical")]
+        [Authorize(Roles = "Employee,HR,Technical,Manager")]
         [HttpGet("my-leaves")]
         public async Task<IActionResult> GetMyLeaves()
         {
@@ -74,8 +112,9 @@ namespace Employee.API.Controllers
             }
         }
 
-        // HR OR TECHNICAL VIEWS PENDING LEAVES
-        [Authorize(Roles = "HR,Technical")]
+        // HR, TECHNICAL OR MANAGER VIEWS PENDING LEAVES
+        // [Authorize(Roles = "HR,Technical,Manager")]
+        [Authorize(Roles = "HR,Technical,Manager,Admin")]
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingLeaves()
         {
@@ -84,14 +123,61 @@ namespace Employee.API.Controllers
             if (string.IsNullOrEmpty(role))
                 return Unauthorized("User role not found.");
 
-            var leaves = await _leaveService
-                .GetPendingLeavesAsync(role);
+            try
+            {
+                var leaves = await _leaveService
+                    .GetPendingLeavesAsync(role);
 
-            return Ok(leaves);
+                return Ok(leaves);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-        // HR OR TECHNICAL APPROVES OR REJECTS LEAVE
-        [Authorize(Roles = "HR,Technical")]
+
+        
+        // MANAGER APPLIES FOR LEAVE TO ADMIN
+        [Authorize(Roles = "Manager")]
+        [HttpPost("apply-for-admin")]
+        public async Task<IActionResult> ApplyLeaveForAdmin(
+            [FromBody] ApplyLeaveRequest request)
+        {
+            var userId = GetUserId();
+
+            if (userId == null)
+                return Unauthorized("User ID not found.");
+
+            try
+            {
+                var result = await _leaveService.ApplyLeaveForAdminAsync(
+                    userId.Value,
+                    request.LeaveType,
+                    request.FromDate,
+                    request.ToDate,
+                    request.Reason);
+
+                return Ok(new
+                {
+                    message = "Leave applied successfully and sent to Admin.",
+                    leave = result
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+
+        // HR, TECHNICAL OR MANAGER APPROVES OR REJECTS LEAVE
+        // [Authorize(Roles = "HR,Technical,Manager")]
+        [Authorize(Roles = "HR,Technical,Manager,Admin")]
         [HttpPut("review/{id}")]
         public async Task<IActionResult> ReviewLeave(
             int id,
@@ -120,7 +206,7 @@ namespace Employee.API.Controllers
                     message = $"Leave {request.Status} successfully."
                 });
             }
-            catch (UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException)
             {
                 return Forbid();
             }
@@ -149,5 +235,4 @@ namespace Employee.API.Controllers
         }
     }
 }
-
 
