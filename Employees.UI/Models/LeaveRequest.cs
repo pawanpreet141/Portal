@@ -29,5 +29,9 @@
         public string? RejectionReason { get; set; }
 
         public string? ReviewedRole { get; set; }
+
+        public string ApplicantName { get; set; } = "-";
+
+        public string? ReviewerName { get; set; }
     }
 }

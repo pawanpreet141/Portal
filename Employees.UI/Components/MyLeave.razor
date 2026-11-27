@@ -55,13 +55,13 @@
             else
             {
                 <div class="table-responsive">
-
+                    
                     <table class="table table-bordered table-hover align-middle">
 
                         <thead class="table-light">
                             <tr>
                                 <th>Leave ID</th>
-                                <th>Applicant ID</th>
+                                <th>Applicant Name</th>
                                 <th>Leave Type</th>
                                 <th>From Date</th>
                                 <th>To Date</th>
@@ -69,7 +69,8 @@
                                 <th>Applied Date</th>
                                 <th>Assigned To</th>
                                 <th>Status</th>
-                                <th>Rejection Reason</th>
+								<th>Rejection Reason</th>
+                                <th>Reviewed By</th>
                             </tr>
                         </thead>
 
@@ -81,11 +82,7 @@
 
                                     <td>@leave.Id</td>
 
-                                    <td>
-                                        @(leave.EmployeeId?.ToString()
-                                          ?? leave.ApplicantUserId?.ToString()
-                                          ?? "-")
-                                    </td>
+                                    <td>@leave.ApplicantName</td>
 
                                     <td>@leave.LeaveType</td>
 
@@ -129,10 +126,13 @@
                                     </td>
 
                                     <td>
-                                        @(string.IsNullOrWhiteSpace(
-                                            leave.RejectionReason)
+                                        @(string.IsNullOrWhiteSpace(leave.RejectionReason)
                                             ? "-"
                                             : leave.RejectionReason)
+                                    </td>
+
+                                    <td>
+                                        @(leave.ReviewerName ?? "-")
                                     </td>
 
                                 </tr>
@@ -141,6 +141,7 @@
                         </tbody>
 
                     </table>
+
 
                 </div>
             }
@@ -165,12 +166,6 @@
     private bool isLoading = true;
 
     private string errorMessage = "";
-
-    // private bool IsAllowedRole =>
-    //     new[] { "Employee", "HR", "Technical" }
-    //         .Contains(
-    //             UserSession.Role?.Trim(),
-    //             StringComparer.OrdinalIgnoreCase);
 
     private bool IsAllowedRole =>
     new[] { "Employee", "HR", "Technical", "Manager" }

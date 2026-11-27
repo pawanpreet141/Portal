@@ -152,6 +152,8 @@ namespace Employee.Data.Data
                 .IsRequired()
                 .HasMaxLength(64);
 
+
+
             // LEAVE REQUEST TABLE
             modelBuilder.Entity<LeaveRequest>()
                 .ToTable("TblLeaveRequests");
@@ -159,10 +161,25 @@ namespace Employee.Data.Data
             modelBuilder.Entity<LeaveRequest>()
                 .HasKey(x => x.Id);
 
+            // Employee relationship
             modelBuilder.Entity<LeaveRequest>()
                 .HasOne(x => x.Employee)
                 .WithMany()
                 .HasForeignKey(x => x.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Applicant relationship (Employee, HR, Manager, Technical)
+            modelBuilder.Entity<LeaveRequest>()
+                .HasOne(x => x.ApplicantUser)
+                .WithMany()
+                .HasForeignKey(x => x.ApplicantUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Reviewer relationship (HR, Manager, Admin, etc.)
+            modelBuilder.Entity<LeaveRequest>()
+                .HasOne(x => x.ReviewerUser)
+                .WithMany()
+                .HasForeignKey(x => x.ReviewedBy)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

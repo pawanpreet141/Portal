@@ -75,8 +75,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Leave ID</th>
-                                <th>Employee ID</th>
-                                <th>Applicant User ID</th>
+                                <th>Applicant Name</th>
                                 <th>Leave Type</th>
                                 <th>From Date</th>
                                 <th>To Date</th>
@@ -96,11 +95,7 @@
                                     <td>@leave.Id</td>
 
                                     <td>
-                                        @(leave.EmployeeId?.ToString() ?? "-")
-                                    </td>
-
-                                    <td>
-                                        @(leave.ApplicantUserId?.ToString() ?? "-")
+                                        @leave.ApplicantName
                                     </td>
 
                                     <td>@leave.LeaveType</td>
@@ -126,17 +121,13 @@
                                         <button class="btn btn-success btn-sm mb-1"
                                                 disabled="@isProcessing"
                                                 @onclick="() => ApproveLeave(leave.Id)">
-
                                             Approve
-
                                         </button>
 
                                         <button class="btn btn-danger btn-sm mb-1"
                                                 disabled="@isProcessing"
                                                 @onclick="() => SelectReject(leave.Id)">
-
                                             Reject
-
                                         </button>
 
                                     </td>
@@ -146,7 +137,7 @@
                                 @if (rejectingLeaveId == leave.Id)
                                 {
                                     <tr>
-                                        <td colspan="10">
+                                        <td colspan="9">
 
                                             <div class="card p-3">
 
@@ -163,16 +154,12 @@
                                                     <button class="btn btn-danger me-2"
                                                             disabled="@isProcessing"
                                                             @onclick="() => RejectLeave(leave.Id)">
-
                                                         Confirm Rejection
-
                                                     </button>
 
                                                     <button class="btn btn-secondary"
                                                             @onclick="CancelReject">
-
                                                         Cancel
-
                                                     </button>
 
                                                 </div>
@@ -217,8 +204,6 @@
     private int? rejectingLeaveId;
     private string rejectionReason = "";
 
-    // HR, Technical, Manager and Admin authorization
-
     private bool IsAuthorized =>
         new[] { "HR", "Technical", "Manager", "Admin" }
         .Contains(
@@ -244,7 +229,6 @@
     }
 
     // LOAD PENDING LEAVES
-
     private async Task LoadLeaves()
     {
         isLoading = true;
@@ -267,14 +251,12 @@
     }
 
     // APPROVE LEAVE
-
     private async Task ApproveLeave(int id)
     {
         await ReviewLeave(id, "Approved", null);
     }
 
     // SELECT REJECTION
-
     private void SelectReject(int id)
     {
         rejectingLeaveId = id;
@@ -289,7 +271,6 @@
     }
 
     // REJECT LEAVE
-
     private async Task RejectLeave(int id)
     {
         if (string.IsNullOrWhiteSpace(rejectionReason))
@@ -303,7 +284,6 @@
     }
 
     // COMMON APPROVE / REJECT METHOD
-
     private async Task ReviewLeave(
         int id,
         string status,
@@ -349,7 +329,6 @@
     }
 
     // BACK TO ROLE DASHBOARD
-
     private void GoBack()
     {
         var role = UserSession.Role?.Trim();

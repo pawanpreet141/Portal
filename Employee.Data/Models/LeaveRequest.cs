@@ -1,13 +1,13 @@
-﻿namespace Employee.Data.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Employee.Data.Models
 {
     public class LeaveRequest
     {
         public int Id { get; set; }
 
-        // Existing employee profile ID
         public int? EmployeeId { get; set; }
 
-        // HR, Technical, or Manager login user ID
         public int? ApplicantUserId { get; set; }
 
         public string LeaveType { get; set; } = string.Empty;
@@ -18,7 +18,6 @@
 
         public string Reason { get; set; } = string.Empty;
 
-        // HR, Technical, Manager, or Admin
         public string AssignedToRole { get; set; } = string.Empty;
 
         public string Status { get; set; } = "Pending";
@@ -33,6 +32,24 @@
 
         public string? ReviewedRole { get; set; }
 
+        // Employee details
         public Employee1? Employee { get; set; }
+
+        // Applicant details (HR, Manager, Technical)
+        public User? ApplicantUser { get; set; }
+
+        // Reviewer details
+        public User? ReviewerUser { get; set; }
+
+        [NotMapped]
+        public string ApplicantName =>
+    Employee?.Name
+    ?? ApplicantUser?.Name
+    ?? "-";
+
+        [NotMapped]
+        public string ReviewerName =>
+            ReviewerUser?.Name
+            ?? "-";
     }
 }

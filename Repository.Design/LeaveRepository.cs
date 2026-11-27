@@ -30,18 +30,21 @@ namespace Employee.BusinessLogic
         {
             return await _context.LeaveRequests
                 .Include(x => x.Employee)
+                .Include(x => x.ApplicantUser)
+                .Include(x => x.ReviewerUser)
                 .Where(x => x.EmployeeId == employeeId)
                 .OrderByDescending(x => x.AppliedDate)
                 .ToListAsync();
         }
 
-        // GET PENDING LEAVES FOR HR, TECHNICAL,
-        // MANAGER AND ADMIN
+        // GET PENDING LEAVES
         public async Task<List<LeaveRequest>> GetPendingLeavesAsync(
             string assignedToRole)
         {
             return await _context.LeaveRequests
                 .Include(x => x.Employee)
+                .Include(x => x.ApplicantUser)
+                .Include(x => x.ReviewerUser)
                 .Where(x =>
                     x.AssignedToRole.ToLower() ==
                         assignedToRole.ToLower() &&
@@ -50,27 +53,26 @@ namespace Employee.BusinessLogic
                 .ToListAsync();
         }
 
-        // GET LEAVE REQUEST BY ID
-        public async Task<LeaveRequest?> GetLeaveByIdAsync(
-            int id)
+        // GET LEAVE BY ID
+        public async Task<LeaveRequest?> GetLeaveByIdAsync(int id)
         {
             return await _context.LeaveRequests
+                .Include(x => x.Employee)
+                .Include(x => x.ApplicantUser)
+                .Include(x => x.ReviewerUser)
                 .FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        // UPDATE LEAVE STATUS
-        public async Task UpdateLeaveAsync(
-            LeaveRequest leaveRequest)
+        // UPDATE LEAVE
+        public async Task UpdateLeaveAsync(LeaveRequest leaveRequest)
         {
             _context.LeaveRequests.Update(leaveRequest);
 
             await _context.SaveChangesAsync();
         }
 
-        // GET USER ACCOUNT BY ID
-        // Supports HR, Technical, Manager and Admin
-        public async Task<User?> GetUserByIdAsync(
-            int userId)
+        // GET USER BY ID
+        public async Task<User?> GetUserByIdAsync(int userId)
         {
             return await _context.Users
                 .FirstOrDefaultAsync(x => x.Id == userId);
@@ -81,10 +83,12 @@ namespace Employee.BusinessLogic
             int userId)
         {
             return await _context.LeaveRequests
+                .Include(x => x.Employee)
+                .Include(x => x.ApplicantUser)
+                .Include(x => x.ReviewerUser)
                 .Where(x => x.ApplicantUserId == userId)
                 .OrderByDescending(x => x.AppliedDate)
                 .ToListAsync();
         }
     }
 }
-
